@@ -41,10 +41,12 @@ def compile_app():
         return False
 
     try:
-        # Limpiar la envoltura de JavaScript para validar el JSON interior
+        # Limpiar la envoltura de JavaScript buscando 'window.FIELD_DATA ='
         js_clean = data_content.strip()
-        if js_clean.startswith("window.FIELD_DATA ="):
-            js_clean = js_clean[len("window.FIELD_DATA ="):].strip()
+        assign_idx = js_clean.find("window.FIELD_DATA =")
+        if assign_idx != -1:
+            js_clean = js_clean[assign_idx + len("window.FIELD_DATA ="):].strip()
+        
         if js_clean.endswith(";"):
             js_clean = js_clean[:-1].strip()
         
