@@ -35,6 +35,11 @@ def compile_app():
     with open(index_path, "r", encoding="utf-8") as f:
         html_content = f.read()
 
+    # Validar que el archivo de datos no esté vacío
+    if len(data_content.strip()) < 100:
+        print("Error: El archivo de datos data.js está vacío o contiene datos insuficientes.")
+        return False
+
     # Procesar e incrustar logo en Base64 si existe
     if os.path.exists(logo_path):
         with open(logo_path, "rb") as f:
@@ -47,24 +52,23 @@ def compile_app():
         print("Advertencia: mi_logo.png no encontrado, se mantendrá la referencia original.")
 
     # Reemplazar enlace de hoja de estilo local por etiqueta style en línea
-    html_content = re.sub(
-        r'<link\s+rel="stylesheet"\s+href="style\.css"\s*/?>',
-        f"<style>\n{css_content}\n</style>",
-        html_content
-    )
+    css_pattern = r'<link\s+[^>]*href=["\']style\.css["\'][^>]*>'
+    html_content, css_count = re.subn(css_pattern, f"<style>\n{css_content}\n</style>", html_content)
+    if css_count == 0:
+        print("Advertencia: No se encontró la referencia a style.css en index.html.")
 
-    # Reemplazar scripts JS locales por etiquetas script en línea
-    html_content = re.sub(
-        r'<script\s+src="public/data\.js"\s*></script>',
-        f"<script>\n{data_content}\n</script>",
-        html_content
-    )
+    # Reemplazar scripts JS locales por etiquetas script en línea (buscando en public/data.js o data.js)
+    data_pattern = r'<script\s+[^>]*src=["\'](?:public/)?data\.js["\'][^>]*>\s*</script>'
+    html_content, data_count = re.subn(data_pattern, f"<script>\n{data_content}\n</script>", html_content)
+    if data_count == 0:
+        print("Error: No se encontró la etiqueta <script src='public/data.js'> en index.html.")
+        return False
     
-    html_content = re.sub(
-        r'<script\s+src="app\.js"\s*></script>',
-        f"<script>\n{app_content}\n</script>",
-        html_content
-    )
+    app_pattern = r'<script\s+[^>]*src=["\']app\.js["\'][^>]*>\s*</script>'
+    html_content, app_count = re.subn(app_pattern, f"<script>\n{app_content}\n</script>", html_content)
+    if app_count == 0:
+        print("Error: No se encontró la etiqueta <script src='app.js'> en index.html.")
+        return False
 
     # Escribir el archivo HTML autocontenido
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

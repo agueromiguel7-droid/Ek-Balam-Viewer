@@ -199,13 +199,24 @@ else:
         with open(output_path, "r", encoding="utf-8") as f:
             html_content = f.read()
         
+        # Calcular tamaños de archivo para diagnóstico
+        data_path_diagnose = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public", "data.js")
+        if not os.path.exists(data_path_diagnose):
+            data_path_diagnose = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.js")
+            
+        data_size_kb = os.path.getsize(data_path_diagnose) / 1024 if os.path.exists(data_path_diagnose) else 0
+        html_size_kb = os.path.getsize(output_path) / 1024 if os.path.exists(output_path) else 0
+        
         # Mostrar el visor en un contenedor iframe de Streamlit
         components.html(html_content, height=950, scrolling=True)
 
-        # Botón flotante para cerrar sesión en Streamlit
+        # Botón flotante para cerrar sesión y diagnósticos en la barra lateral
         st.markdown('<div class="logout-btn-container">', unsafe_allow_html=True)
         if st.sidebar.button("Cerrar Sesión", key="logout"):
             st.session_state["authenticated"] = False
             st.session_state.pop("user_name", None)
             st.rerun()
+        st.sidebar.markdown("---")
+        st.sidebar.caption(f"Base de Datos: {data_size_kb:.1f} KB")
+        st.sidebar.caption(f"Visor Compilado: {html_size_kb:.1f} KB")
         st.markdown('</div>', unsafe_allow_html=True)
