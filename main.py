@@ -284,8 +284,12 @@ else:
         import time
         html_content_cached = html_content + f"\n<!-- CacheBuster: {time.time()} -->"
         
-        # Mostrar el visor en un contenedor iframe de Streamlit
-        components.html(html_content_cached, height=950, scrolling=True)
+        # Generar un hash único basado en el contenido del HTML compilado
+        import hashlib
+        html_hash = hashlib.md5(html_content_cached.encode("utf-8")).hexdigest()
+        
+        # Mostrar el visor en un contenedor iframe de Streamlit con un key único para evitar caché
+        components.html(html_content_cached, height=950, scrolling=True, key=html_hash)
 
         # Botón flotante para cerrar sesión
         st.markdown('<div class="logout-btn-container">', unsafe_allow_html=True)
