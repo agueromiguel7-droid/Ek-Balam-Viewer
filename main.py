@@ -229,33 +229,38 @@ else:
     # Estilos CSS de pantalla completa para cuando el usuario ya ingresó
     st.markdown("""
     <style>
-    /* Pantalla completa e iframe sin bordes ni márgenes */
+    /* Forzar al contenedor principal a ocupar el 100% de la pantalla sin márgenes */
     .main .block-container {
-        max-width: 100% !important;
+        max-width: 100vw !important;
         padding: 0px !important;
         margin: 0px !important;
-    }
-    iframe {
-        border: none;
-        width: 100vw;
-        height: 100vh;
-    }
-    header, footer {
-        visibility: hidden;
-        height: 0px;
+        height: 100vh !important;
     }
     
-    /* Ocultar barra lateral nativa de Streamlit por completo */
-    [data-testid="stSidebar"] {
+    /* Posicionar el iframe de forma fija y absoluta cubriendo el 100% del viewport */
+    iframe {
+        position: fixed !important;
+        top: 0px !important;
+        left: 0px !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        border: none !important;
+        margin: 0px !important;
+        padding: 0px !important;
+        z-index: 1 !important;
+    }
+    
+    /* Ocultar elementos nativos de Streamlit (cabecera, pie de página, barra lateral) */
+    header[data-testid="stHeader"], footer, [data-testid="stSidebar"] {
         display: none !important;
     }
     
-    /* Botón flotante para cerrar sesión (Pill moderno en la esquina inferior derecha) */
+    /* Botón flotante para cerrar sesión (Pill moderno flotando sobre el iframe) */
     .logout-btn-container {
         position: fixed;
         bottom: 20px;
         right: 20px;
-        z-index: 999999;
+        z-index: 999999 !important;
     }
     .logout-btn-container button {
         background-color: #ffffff !important;
@@ -299,9 +304,6 @@ else:
     else:
         # Calcular el tamaño del HTML compilado en memoria
         html_size_kb = len(html_content) / 1024
-        
-        # Mostrar información de diagnóstico visible en la parte superior
-        st.caption(f"🔧 Visor de Datos (Compilado en Memoria) - Base de Datos: {data_size_kb:.1f} KB | HTML: {html_size_kb:.1f} KB")
         
         # Añadir un comentario dinámico al final para romper el caché del iframe del navegador
         import time
