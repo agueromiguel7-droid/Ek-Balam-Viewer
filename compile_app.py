@@ -9,14 +9,18 @@ def compile_app():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     index_path = os.path.join(base_dir, "index.html")
     css_path = os.path.join(base_dir, "style.css")
-    data_path = os.path.join(base_dir, "public", "data.js")
     app_path = os.path.join(base_dir, "app.js")
     logo_path = os.path.join(base_dir, "mi_logo.png")
     output_path = os.path.join(base_dir, "dist", "index.html")
 
+    # Intentar buscar data.js en public/ o en la raíz (como fallback)
+    data_path = os.path.join(base_dir, "public", "data.js")
+    if not os.path.exists(data_path):
+        data_path = os.path.join(base_dir, "data.js")
+
     # Verificar existencia de archivos esenciales
     for path, name in [(index_path, "index.html"), (css_path, "style.css"), 
-                       (data_path, "public/data.js"), (app_path, "app.js")]:
+                       (data_path, "public/data.js o data.js"), (app_path, "app.js")]:
         if not os.path.exists(path):
             print(f"Error: No se encontró el archivo requerido: {name}")
             return False

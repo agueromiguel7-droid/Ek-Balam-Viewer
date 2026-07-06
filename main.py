@@ -182,11 +182,18 @@ else:
     </style>
     """, unsafe_allow_html=True)
 
-    # Verificar que el HTML autocontenido esté disponible
+    # Compilar automáticamente en cada inicio del servidor para asegurar que todo esté integrado
     output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist", "index.html")
+    compiled_successfully = False
     
-    if not os.path.exists(output_path):
-        st.error("Error: El visor no ha sido compilado. Por favor ejecute python compile_app.py.")
+    try:
+        import compile_app
+        compiled_successfully = compile_app.compile_app()
+    except Exception as e:
+        st.error(f"Error al compilar automáticamente: {e}")
+        
+    if not compiled_successfully:
+        st.error("Error: No se pudo generar la aplicación. Asegúrese de que el archivo de datos ('data.js' en la carpeta raíz o dentro de la carpeta 'public/') y todos los archivos fuente ('index.html', 'style.css', 'app.js') estén subidos a su repositorio de GitHub.")
     else:
         # Cargar el archivo autocontenido
         with open(output_path, "r", encoding="utf-8") as f:
