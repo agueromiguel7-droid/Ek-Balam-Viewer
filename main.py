@@ -245,12 +245,35 @@ else:
         height: 0px;
     }
     
-    /* Botón flotante para cerrar sesión en la parte superior izquierda */
+    /* Ocultar barra lateral nativa de Streamlit por completo */
+    [data-testid="stSidebar"] {
+        display: none !important;
+    }
+    
+    /* Botón flotante para cerrar sesión (Pill moderno en la esquina inferior derecha) */
     .logout-btn-container {
         position: fixed;
         bottom: 20px;
         right: 20px;
         z-index: 999999;
+    }
+    .logout-btn-container button {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 30px !important;
+        padding: 8px 20px !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+        transition: all 0.2s ease !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+    .logout-btn-container button:hover {
+        background-color: #f8fafc !important;
+        border-color: #94a3b8 !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 8px -1px rgba(0, 0, 0, 0.1), 0 3px 6px -1px rgba(0, 0, 0, 0.08) !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -289,7 +312,7 @@ else:
 
         # Botón flotante para cerrar sesión
         st.markdown('<div class="logout-btn-container">', unsafe_allow_html=True)
-        if st.sidebar.button("Cerrar Sesión", key="logout"):
+        if st.button("Cerrar Sesión", key="logout"):
             st.session_state["authenticated"] = False
             st.session_state.pop("user_name", None)
             st.rerun()
