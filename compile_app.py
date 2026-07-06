@@ -35,9 +35,24 @@ def compile_app():
     with open(index_path, "r", encoding="utf-8") as f:
         html_content = f.read()
 
-    # Validar que el archivo de datos no esté vacío
+    # Validar que el archivo de datos no esté vacío y sea un JSON válido (no truncado)
     if len(data_content.strip()) < 100:
         print("Error: El archivo de datos data.js está vacío o contiene datos insuficientes.")
+        return False
+
+    try:
+        # Limpiar la envoltura de JavaScript para validar el JSON interior
+        js_clean = data_content.strip()
+        if js_clean.startswith("window.FIELD_DATA ="):
+            js_clean = js_clean[len("window.FIELD_DATA ="):].strip()
+        if js_clean.endswith(";"):
+            js_clean = js_clean[:-1].strip()
+        
+        import json
+        json.loads(js_clean)
+        print("Base de datos validada: Estructura JSON correcta.")
+    except Exception as e:
+        print(f"Error: La base de datos data.js está corrupta o incompleta (JSON inválido): {e}")
         return False
 
     # Procesar e incrustar logo en Base64 si existe

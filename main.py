@@ -185,15 +185,24 @@ else:
     # Compilar automáticamente en cada inicio del servidor para asegurar que todo esté integrado
     output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist", "index.html")
     compiled_successfully = False
+    compilation_error = None
     
     try:
         import compile_app
+        # Forzar recarga del módulo para ejecutar el código actualizado
+        import importlib
+        importlib.reload(compile_app)
         compiled_successfully = compile_app.compile_app()
     except Exception as e:
-        st.error(f"Error al compilar automáticamente: {e}")
+        compiled_successfully = False
+        compilation_error = str(e)
         
     if not compiled_successfully:
-        st.error("Error: No se pudo generar la aplicación. Asegúrese de que el archivo de datos ('data.js' en la carpeta raíz o dentro de la carpeta 'public/') y todos los archivos fuente ('index.html', 'style.css', 'app.js') estén subidos a su repositorio de GitHub.")
+        st.error("Error crítico: La compilación del visor de datos falló.")
+        if compilation_error:
+            st.code(compilation_error)
+        else:
+            st.warning("Verifique la consola de Streamlit para más detalles. Posiblemente 'public/data.js' está vacío, corrupto o incompleto.")
     else:
         # Cargar el archivo autocontenido
         with open(output_path, "r", encoding="utf-8") as f:
@@ -207,6 +216,9 @@ else:
         data_size_kb = os.path.getsize(data_path_diagnose) / 1024 if os.path.exists(data_path_diagnose) else 0
         html_size_kb = os.path.getsize(output_path) / 1024 if os.path.exists(output_path) else 0
         
+        # Mostrar información de diagnóstico visible en la parte superior
+        st.caption(f"🔧 Visor de Datos - Base de Datos: {data_size_kb:.1f} KB | HTML: {html_size_kb:.1f} KB")
+        
         # Verificar que los datos realmente se inyectaron y contienen información de pozos
         if "window.FIELD_DATA" not in html_content or '"wells":' not in html_content:
             st.error("Error crítico: La base de datos de pozos ('wells') no se encontró dentro del visor compilado. Asegúrese de que el archivo 'public/data.js' local no esté vacío y contenga los datos extraídos (ejecutando python scripts/extract_data.py) antes de subirlo.")
@@ -218,13 +230,10 @@ else:
             # Mostrar el visor en un contenedor iframe de Streamlit
             components.html(html_content_cached, height=950, scrolling=True)
 
-        # Botón flotante para cerrar sesión y diagnósticos en la barra lateral
+        # Botón flotante para cerrar sesión
         st.markdown('<div class="logout-btn-container">', unsafe_allow_html=True)
         if st.sidebar.button("Cerrar Sesión", key="logout"):
             st.session_state["authenticated"] = False
             st.session_state.pop("user_name", None)
             st.rerun()
-        st.sidebar.markdown("---")
-        st.sidebar.caption(f"Base de Datos: {data_size_kb:.1f} KB")
-        st.sidebar.caption(f"Visor Compilado: {html_size_kb:.1f} KB")
         st.markdown('</div>', unsafe_allow_html=True)
