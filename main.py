@@ -207,12 +207,16 @@ else:
         data_size_kb = os.path.getsize(data_path_diagnose) / 1024 if os.path.exists(data_path_diagnose) else 0
         html_size_kb = os.path.getsize(output_path) / 1024 if os.path.exists(output_path) else 0
         
-        # Verificar que los datos realmente se inyectaron
-        if "window.FIELD_DATA" not in html_content:
-            st.error("Error crítico: La base de datos ('window.FIELD_DATA') no se incrustó en el archivo HTML. Asegúrese de que el archivo 'public/data.js' local no esté vacío y contenga los datos antes de subirlo.")
+        # Verificar que los datos realmente se inyectaron y contienen información de pozos
+        if "window.FIELD_DATA" not in html_content or '"wells":' not in html_content:
+            st.error("Error crítico: La base de datos de pozos ('wells') no se encontró dentro del visor compilado. Asegúrese de que el archivo 'public/data.js' local no esté vacío y contenga los datos extraídos (ejecutando python scripts/extract_data.py) antes de subirlo.")
         else:
+            # Añadir un comentario dinámico al final para romper el caché del iframe del navegador
+            import time
+            html_content_cached = html_content + f"\n<!-- CacheBuster: {time.time()} -->"
+            
             # Mostrar el visor en un contenedor iframe de Streamlit
-            components.html(html_content, height=950, scrolling=True)
+            components.html(html_content_cached, height=950, scrolling=True)
 
         # Botón flotante para cerrar sesión y diagnósticos en la barra lateral
         st.markdown('<div class="logout-btn-container">', unsafe_allow_html=True)
