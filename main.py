@@ -86,17 +86,17 @@ def compile_in_memory():
             logo_base64 = base64.b64encode(logo_data).decode("utf-8")
         html_content = html_content.replace('src="mi_logo.png"', f'src="data:image/png;base64,{logo_base64}"')
         
-    # Reemplazos de scripts y CSS
+    # Reemplazos de scripts y CSS (usando funciones lambda para evitar el procesamiento de secuencias de escape de expresiones regulares)
     css_pattern = r'<link\s+[^>]*href=["\']style\.css["\'][^>]*>'
-    html_content, css_count = re.subn(css_pattern, f"<style>\n{css_content}\n</style>", html_content)
+    html_content, css_count = re.subn(css_pattern, lambda m: f"<style>\n{css_content}\n</style>", html_content)
     
     data_pattern = r'<script\s+[^>]*src=["\'](?:public/)?data\.js["\'][^>]*>\s*</script>'
-    html_content, data_count = re.subn(data_pattern, f"<script>\n{data_content}\n</script>", html_content)
+    html_content, data_count = re.subn(data_pattern, lambda m: f"<script>\n{data_content}\n</script>", html_content)
     if data_count == 0:
         raise ValueError("No se encontró la referencia a public/data.js en index.html.")
         
     app_pattern = r'<script\s+[^>]*src=["\']app\.js["\'][^>]*>\s*</script>'
-    html_content, app_count = re.subn(app_pattern, f"<script>\n{app_content}\n</script>", html_content)
+    html_content, app_count = re.subn(app_pattern, lambda m: f"<script>\n{app_content}\n</script>", html_content)
     if app_count == 0:
         raise ValueError("No se encontró la referencia a app.js en index.html.")
         
@@ -284,12 +284,8 @@ else:
         import time
         html_content_cached = html_content + f"\n<!-- CacheBuster: {time.time()} -->"
         
-        # Generar un hash único basado en el contenido del HTML compilado
-        import hashlib
-        html_hash = hashlib.md5(html_content_cached.encode("utf-8")).hexdigest()
-        
-        # Mostrar el visor en un contenedor iframe de Streamlit con un key único para evitar caché
-        components.html(html_content_cached, height=950, scrolling=True, key=html_hash)
+        # Mostrar el visor en un contenedor iframe de Streamlit
+        components.html(html_content_cached, height=950, scrolling=True)
 
         # Botón flotante para cerrar sesión
         st.markdown('<div class="logout-btn-container">', unsafe_allow_html=True)
