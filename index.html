@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ek-Balam Viewer - Cuarto de Datos Integrado</title>
+  
+  <!-- CDNs for icons, maps and charts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css" />
+  
+  <!-- Extracted Data -->
+  <script src="public/data.js"></script>
+</head>
+<body>
+
+  <!-- Navigation Sidebar -->
+  <aside id="sidebar">
+    <div id="sidebar-brand">
+      <img src="mi_logo.png" alt="Sierra Madre Resources Logo" class="brand-logo" />
+      <div class="brand-text">
+        <h1><i class="fa-solid fa-helmet-safety"></i> Ek-Balam</h1>
+        <div class="subtitle" data-i18n="sidebar_subtitle">VISOR DE CUARTO DE DATOS</div>
+      </div>
+    </div>
+    
+    <nav id="sidebar-menu">
+      <div class="menu-item active" data-view="dashboard">
+        <i class="fa-solid fa-chart-line"></i>
+        <span data-i18n="menu_dashboard">Resumen General</span>
+      </div>
+      <div class="menu-item" data-view="map">
+        <i class="fa-solid fa-map-location-dot"></i>
+        <span data-i18n="menu_map">Mapa de Pozos</span>
+      </div>
+      <div class="menu-item" data-view="production">
+        <i class="fa-solid fa-droplet"></i>
+        <span data-i18n="menu_production">Prod. de Hidrocarburos</span>
+      </div>
+      <div class="menu-item" data-view="pressure">
+        <i class="fa-solid fa-gauge-high"></i>
+        <span data-i18n="menu_pressure">Presiones de Yacimiento</span>
+      </div>
+      <div class="menu-item" data-view="injection">
+        <i class="fa-solid fa-faucet-drip"></i>
+        <span data-i18n="menu_injection">Inyección de Agua</span>
+      </div>
+      <div class="menu-item" data-view="esp">
+        <i class="fa-solid fa-bolt"></i>
+        <span data-i18n="menu_esp">Operación de BECs</span>
+      </div>
+      <div class="menu-item" data-view="chemical">
+        <i class="fa-solid fa-flask"></i>
+        <span data-i18n="menu_chemical">Tratamiento Químico</span>
+      </div>
+      <div class="menu-item" data-view="dc">
+        <i class="fa-solid fa-screwdriver-wrench"></i>
+        <span data-i18n="menu_dc">Perforación y Costos</span>
+      </div>
+    </nav>
+    
+    <div id="sidebar-footer">
+      <span>V1.0.0</span>
+      <button class="theme-toggle" id="theme-btn" title="Alternar Modo Oscuro" data-i18n-title="theme_toggle_title">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content Canvas -->
+  <main id="main-canvas">
+    
+    <!-- Top Header Bar -->
+    <header id="header-bar">
+      <div id="header-title">
+        <div id="header-title-indicator"></div>
+        <h2 id="view-title" data-i18n="menu_dashboard">Resumen General</h2>
+      </div>
+      
+      <div id="controls-group">
+        <!-- Language Selector -->
+        <select class="filter-select" id="language-select" title="Idioma / Language">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
+
+        <!-- Field Selector -->
+        <select class="filter-select" id="filter-field" title="Filtrar por Campo" data-i18n-title="filter_field_title">
+          <option value="ALL" data-i18n="filter_fields_all">Campos: Todos</option>
+          <option value="Ek" data-i18n="filter_fields_ek">Campo: Ek</option>
+          <option value="Balam" data-i18n="filter_fields_balam">Campo: Balam</option>
+        </select>
+        
+        <!-- Reservoir Selector -->
+        <select class="filter-select" id="filter-reservoir" title="Filtrar por Yacimiento" data-i18n-title="filter_reservoir_title">
+          <option value="ALL" data-i18n="filter_reservoirs_all">Yacimientos: Todos</option>
+          <option value="JSO" data-i18n="filter_reservoirs_jso">Yacimiento: JSO</option>
+          <option value="BKS" data-i18n="filter_reservoirs_bks">Yacimiento: BKS</option>
+          <option value="SUR" data-i18n="filter_reservoirs_sur">Yacimiento: Sur</option>
+        </select>
+      </div>
+    </header>
+    
+    <!-- Scrollable Content -->
+    <section id="content-scroller">
+      
+      <!-- 1. DASHBOARD VIEW -->
+      <div class="module-view active" id="view-dashboard">
+        <!-- KPI Row -->
+        <div class="grid-12">
+          <div class="kpi-card focus-kpi col-3">
+            <div class="kpi-label" data-i18n="kpi_avg_oil_daily">Prod. Diaria Promedio (Crudo)</div>
+            <div class="kpi-value" id="kpi-dash-oil">- <span class="kpi-unit">bpd</span></div>
+            <div class="kpi-trend positive" data-i18n="kpi_trend_recent"><i class="fa-solid fa-arrow-trend-up"></i> Histórico Reciente</div>
+          </div>
+          <div class="kpi-card focus-kpi col-3">
+            <div class="kpi-label" data-i18n="kpi_avg_gas_daily">Prod. Diaria Promedio (Gas)</div>
+            <div class="kpi-value" id="kpi-dash-gas">- <span class="kpi-unit">MMscfd</span></div>
+            <div class="kpi-trend positive" data-i18n="kpi_trend_recent"><i class="fa-solid fa-arrow-trend-up"></i> Histórico Reciente</div>
+          </div>
+          <div class="kpi-card col-3">
+            <div class="kpi-label" data-i18n="kpi_total_registered_wells">Pozos Totales Registrados</div>
+            <div class="kpi-value" id="kpi-dash-wells">- <span class="kpi-unit">pozos</span></div>
+            <div class="kpi-trend neutral" data-i18n="kpi_trend_db"><i class="fa-solid fa-check"></i> Base de Datos</div>
+          </div>
+          <div class="kpi-card col-3">
+            <div class="kpi-label" data-i18n="kpi_operating_esp_systems">Sistemas BEC Operando</div>
+            <div class="kpi-value" id="kpi-dash-esp">- <span class="kpi-unit">PDC</span></div>
+            <div class="kpi-trend positive" data-i18n="kpi_trend_active"><i class="fa-solid fa-plug"></i> Activos</div>
+          </div>
+        </div>
+        
+        <!-- Dashboard Charts -->
+        <div class="grid-12">
+          <div class="tech-card col-8">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_field_prod_history"><i class="fa-solid fa-chart-area"></i> Histórico de Producción del Campo</div>
+            </div>
+            <div class="tech-card-body">
+              <div id="chart-dash-prod" class="chart-container"></div>
+            </div>
+          </div>
+          <div class="tech-card col-4">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_well_dist"><i class="fa-solid fa-filter"></i> Distribución de Pozos</div>
+            </div>
+            <div class="tech-card-body">
+              <div id="chart-dash-welltype" class="chart-container" style="min-height: 240px;"></div>
+              <div style="margin-top: 16px; font-size: 12px; color: var(--color-on-surface-variant);">
+                <strong data-i18n="label_wells_by_status">Pozos por Estado:</strong>
+                <div style="display:flex; justify-content:space-between; margin-top:6px; border-bottom: 1px solid var(--color-border-soft); padding-bottom: 4px;">
+                  <span data-i18n="label_status_operating">Operando:</span> <span id="dash-state-oper" style="font-weight:600; font-family:var(--font-technical);">-</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:4px; border-bottom: 1px solid var(--color-border-soft); padding-bottom: 4px;">
+                  <span data-i18n="label_status_shutin">Cerrados (Shut-in):</span> <span id="dash-state-shut" style="font-weight:600; font-family:var(--font-technical);">-</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:4px;">
+                  <span data-i18n="label_status_injectors">Inyectores:</span> <span id="dash-state-inj" style="font-weight:600; font-family:var(--font-technical);">-</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 2. MAP VIEW -->
+      <div class="module-view" id="view-map">
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_map"><i class="fa-solid fa-compass"></i> Ubicación Geográfica de Pozos (UTM a Lat/Lon)</div>
+            </div>
+            <div class="tech-card-body" style="padding: 0;">
+              <div id="map" class="map-container" style="height: 520px; border-radius: 0;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_coords"><i class="fa-solid fa-list"></i> Coordenadas UTM y Elevación de Pozos</div>
+              <input type="text" id="map-well-search" class="filter-select" style="width: 250px;" placeholder="Buscar pozo..." data-i18n-placeholder="search_placeholder" />
+            </div>
+            <div class="tech-card-body table-container" style="padding:0;">
+              <table class="tech-table" id="table-coordinates">
+                <thead>
+                  <tr>
+                    <th data-i18n="th_well_name">Nombre Pozo</th>
+                    <th data-i18n="th_platform">Plataforma</th>
+                    <th data-i18n="th_reservoir_top">Yacimiento (Cima)</th>
+                    <th class="num-col" data-i18n="th_utm_x">UTM X (E)</th>
+                    <th class="num-col" data-i18n="th_utm_y">UTM Y (N)</th>
+                    <th class="num-col" data-i18n="th_z_depth">Z (TVD, m)</th>
+                    <th class="num-col" data-i18n="th_md_depth">MD (m)</th>
+                    <th data-i18n="th_status">Estado</th>
+                    <th data-i18n="th_action">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 3. PRODUCTION VIEW -->
+      <div class="module-view" id="view-production">
+        <div class="grid-12" style="align-items: center; margin-bottom: -10px;">
+          <div class="col-6">
+            <label for="prod-well-select" style="font-size:12px; font-weight:700; color:var(--color-on-surface-variant); font-family:var(--font-technical); display:block; margin-bottom:4px;" data-i18n="label_select_individual_well">SELECCIONAR POZO INDIVIDUAL</label>
+            <select class="filter-select" id="prod-well-select" style="width:100%; max-width: 320px;">
+              <option value="ALL" data-i18n="option_show_field_total">-- Mostrar Total del Campo --</option>
+            </select>
+          </div>
+        </div>
+        <!-- Production KPIs -->
+        <div class="grid-12">
+          <div class="kpi-card col-3">
+            <div class="kpi-label" data-i18n="kpi_avg_oil_prod">Prod. Promedio Aceite</div>
+            <div class="kpi-value" id="kpi-prod-oil">- <span class="kpi-unit">bpd</span></div>
+          </div>
+          <div class="kpi-card col-3">
+            <div class="kpi-label" data-i18n="kpi_avg_water_prod">Prod. Promedio Agua</div>
+            <div class="kpi-value" id="kpi-prod-wtr">- <span class="kpi-unit">bpd</span></div>
+          </div>
+          <div class="kpi-card col-3">
+            <div class="kpi-label" data-i18n="kpi_water_cut">Corte de Agua (Water Cut)</div>
+            <div class="kpi-value" id="kpi-prod-wc">- <span class="kpi-unit">%</span></div>
+          </div>
+          <div class="kpi-card col-3">
+            <div class="kpi-label" data-i18n="kpi_avg_gas_prod">Gas Producido Promedio</div>
+            <div class="kpi-value" id="kpi-prod-gas">- <span class="kpi-unit">MMscfd</span></div>
+          </div>
+        </div>
+        <!-- Production Charts -->
+        <div class="grid-12">
+          <div class="tech-card col-8">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_well_field_prod_history"><i class="fa-solid fa-chart-line"></i> Histórico de Producción del Pozo/Campo</div>
+            </div>
+            <div class="tech-card-body">
+              <div id="chart-prod-history" class="chart-container"></div>
+            </div>
+          </div>
+          <div class="tech-card col-4">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_water_cut_history"><i class="fa-solid fa-chart-line"></i> Histórico de Corte de Agua (Water Cut)</div>
+            </div>
+            <div class="tech-card-body">
+              <div id="chart-prod-wc" class="chart-container"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 4. PRESSURE VIEW -->
+      <div class="module-view" id="view-pressure">
+        <!-- Pressure KPIs -->
+        <div class="grid-12">
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_press_initial">Presión Inicial Registrada</div>
+            <div class="kpi-value" id="kpi-pres-initial">- <span class="kpi-unit">kg/cm²</span></div>
+          </div>
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_press_recent">Presión Reciente Mínima</div>
+            <div class="kpi-value" id="kpi-pres-recent">- <span class="kpi-unit">kg/cm²</span></div>
+          </div>
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_press_loss">Pérdida de Presión Estimada</div>
+            <div class="kpi-value" id="kpi-pres-loss">- <span class="kpi-unit">kg/cm²</span></div>
+          </div>
+        </div>
+        <!-- Pressure Charts -->
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_press_decline"><i class="fa-solid fa-gauge"></i> Curvas de Declinación de Presión Estática de Fondo (Pws)</div>
+            </div>
+            <div class="tech-card-body">
+              <div id="chart-pressure-decline" class="chart-container" style="height: 380px;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_press_history"><i class="fa-solid fa-file-invoice"></i> Historial Detallado de Registros de Presión</div>
+            </div>
+            <div class="tech-card-body table-container" style="padding:0;">
+              <table class="tech-table" id="table-pressure">
+                <thead>
+                  <tr>
+                    <th data-i18n="th_date_record">Fecha Registro</th>
+                    <th data-i18n="th_well">Pozo</th>
+                    <th data-i18n="th_field">Campo</th>
+                    <th data-i18n="th_reservoir_block">Yacimiento / Bloque</th>
+                    <th class="num-col" data-i18n="th_pws_kgcm2">Presión Pws (kg/cm²)</th>
+                    <th class="num-col" data-i18n="th_pws_psi">Presión Pws (psi)</th>
+                    <th data-i18n="th_comments">Comentarios / Notas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 5. WATER INJECTION VIEW -->
+      <div class="module-view" id="view-injection">
+        <!-- Injection KPIs -->
+        <div class="grid-12">
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_active_injectors">Pozos Inyectores Activos</div>
+            <div class="kpi-value" id="kpi-inj-count">- <span class="kpi-unit">pozos</span></div>
+          </div>
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_avg_injection">Inyección Promedio de Agua</div>
+            <div class="kpi-value" id="kpi-inj-rate">- <span class="kpi-unit">bwpd</span></div>
+          </div>
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_cum_injected">Volumen Acumulado Inyectado</div>
+            <div class="kpi-value" id="kpi-inj-cum">- <span class="kpi-unit">MMbbl</span></div>
+          </div>
+        </div>
+        
+        <!-- Injection Charts -->
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_inj_history"><i class="fa-solid fa-chart-area"></i> Tasa de Inyección de Agua por Pozo Inyector</div>
+            </div>
+            <div class="tech-card-body">
+              <div id="chart-injection-history" class="chart-container" style="height: 350px;"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Diagnostics -->
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_water_diag"><i class="fa-solid fa-triangle-exclamation"></i> Diagnósticos de Agua en Yacimientos (EK-BKS)</div>
+            </div>
+            <div class="tech-card-body table-container" style="padding:0;">
+              <table class="tech-table" id="table-water-diagnostics">
+                <thead>
+                  <tr>
+                    <th data-i18n="th_well">Pozo</th>
+                    <th class="num-col" data-i18n="th_q_liquid">Q Líquido (Mbd)</th>
+                    <th class="num-col" data-i18n="th_q_oil">Q Aceite (Mbd)</th>
+                    <th class="num-col" data-i18n="th_q_water">Q Agua (Mbd)</th>
+                    <th class="num-col" data-i18n="th_q_critical">Q Aceite Crítico (Mbd)</th>
+                    <th data-i18n="th_diagnostic">Diagnóstico de Irrupción</th>
+                    <th data-i18n="th_mitigation">Propuesta de Mitigación</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 6. ESP (BEC) VIEW -->
+      <div class="module-view" id="view-esp">
+        <!-- Scale Risk Warning -->
+        <div class="risk-callout">
+          <div class="risk-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="risk-content">
+            <div class="risk-title" data-i18n="esp_risk_title">ALERTA CRÍTICA DE INTEGRIDAD: Incrustación de Carbonato de Calcio (CaCO3)</div>
+            <div class="risk-desc" data-i18n="esp_risk_desc">
+              El agua de inyección marina es filtrada pero <strong>NO recibe tratamiento químico inhibitorio de incrustación de CaCO3 antes de inyectar</strong>. Esto provoca severa precipitación y daño en los sistemas de Bombeo Electrocentrífugo (BEC). 
+              <br/><strong>Preguntas claves para Pemex:</strong> (1) ¿Cuál es la dosificación de inhibidor en agua? (2) ¿Qué pozos tienen inyección por capilar en fondo? (3) ¿Existe programa de squeeze? (4) ¿Cuál es el tratamiento químico en Ek-TB?
+            </div>
+          </div>
+        </div>
+        
+        <!-- ESP KPIs -->
+        <div class="grid-12">
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_esp_active_label">Sistemas BEC Operando</div>
+            <div class="kpi-value" id="kpi-esp-active">- <span class="kpi-unit">pozos</span></div>
+          </div>
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_esp_freq_label">Frecuencia Promedio de Operación</div>
+            <div class="kpi-value" id="kpi-esp-freq">- <span class="kpi-unit">Hz</span></div>
+          </div>
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_esp_sensor_label">Falla de Sensor de Fondo (Aislado)</div>
+            <div class="kpi-value" id="kpi-esp-sensor">- <span class="kpi-unit">sensores</span></div>
+          </div>
+        </div>
+        
+        <!-- ESP Parameter Table -->
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_esp_params"><i class="fa-solid fa-list-check"></i> Parámetros Operativos BEC - Pozos del Campo</div>
+            </div>
+            <div class="tech-card-body table-container" style="padding:0;">
+              <table class="tech-table" id="table-esp-params">
+                <thead>
+                  <tr>
+                    <th data-i18n="th_platform">Plataforma</th>
+                    <th data-i18n="th_well">Pozo</th>
+                    <th class="num-col" data-i18n="th_oil_prod_bpd">Prod. Aceite (bpd)</th>
+                    <th class="num-col" data-i18n="th_freq_hz">Freq (Hz)</th>
+                    <th class="num-col" data-i18n="th_corr_a">Corr A (Amp)</th>
+                    <th class="num-col" data-i18n="th_corr_b">Corr B (Amp)</th>
+                    <th class="num-col" data-i18n="th_corr_c">Corr C (Amp)</th>
+                    <th class="num-col" data-i18n="th_ground_ins">Ais. Tierra (MΩ)</th>
+                    <th class="num-col" data-i18n="th_phase_phase">Fase-Fase (Ω)</th>
+                    <th data-i18n="th_vfd_brand">Marca VFD</th>
+                    <th data-i18n="th_last_megger">Última Prueba Megger</th>
+                    <th class="num-col" data-i18n="th_motor_temp">Temp. Motor (°C)</th>
+                    <th data-i18n="th_sensor_status">Sensor Fondo Activo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+        <!-- ESP Workover Timeline -->
+        <div class="grid-12">
+          <div class="tech-card col-6">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_esp_timeline"><i class="fa-solid fa-timeline"></i> Cronograma Crítico de Reparación BEC (RME - 25 Días)</div>
+            </div>
+            <div class="tech-card-body" id="esp-timeline-container">
+              <!-- Chronogram Gantt rendered here -->
+            </div>
+          </div>
+          <div class="tech-card col-6">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_esp_costs"><i class="fa-solid fa-comments-dollar"></i> Costos Históricos de Reparaciones de Sistemas BEC</div>
+            </div>
+            <div class="tech-card-body table-container" style="padding:0;">
+              <table class="tech-table" id="table-esp-costs">
+                <thead>
+                  <tr>
+                    <th data-i18n="th_fail_date">Fecha Falla</th>
+                    <th data-i18n="th_well">Pozo</th>
+                    <th data-i18n="th_eq_installed">Equipo Instalado</th>
+                    <th class="num-col" data-i18n="th_cost_mxn">Costo (MXN MM)</th>
+                    <th class="num-col" data-i18n="th_cost_usd">Costo (USD MM)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 7. CHEMICAL TREATMENT VIEW -->
+      <div class="module-view" id="view-chemical">
+        <div class="risk-callout" style="background-color: var(--color-surface-container); border-color: var(--color-outline-variant); border-left-color: var(--color-secondary);">
+          <div class="risk-icon" style="color:var(--color-secondary);"><i class="fa-solid fa-circle-info"></i></div>
+          <div class="risk-content">
+            <div class="risk-title" style="color:var(--color-secondary);" data-i18n="chem_title">Programa de Inyección de Químicos y Aseguramiento de Flujo</div>
+            <div class="risk-desc" data-i18n="chem_desc">
+              Resumen de la dosificación de bactericidas, coagulantes, secuestradores de oxígeno, e inhibidores de corrosión. Las dosificaciones buscan evitar biocorrosión por sulfato-reductoras y atascamiento del impulsor de la bomba por sarro.
+            </div>
+          </div>
+        </div>
+        
+        <!-- Chemical Treatment Tables -->
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_chem_a"><i class="fa-solid fa-bucket"></i> Sección A - Tratamiento Químico en Plantas de Inyección (Agua Marina)</div>
+            </div>
+            <div class="tech-card-body table-container" style="padding:0;">
+              <table class="tech-table" id="table-chemical-a">
+                <thead>
+                  <tr>
+                    <th data-i18n="th_platform_plant">Plataforma / Planta</th>
+                    <th data-i18n="th_chem_type">Tipo Químico</th>
+                    <th data-i18n="th_product_name">Nombre Producto</th>
+                    <th data-i18n="th_supplier">Proveedor</th>
+                    <th data-i18n="th_inj_point">Punto de Inyección</th>
+                    <th data-i18n="th_mode">Modo</th>
+                    <th class="num-col" data-i18n="th_dosage">Dosificación (ppm)</th>
+                    <th class="num-col" data-i18n="th_rate_l_day">Tasa (L/día)</th>
+                    <th class="num-col" data-i18n="th_target_conc">Conc. Objetivo (ppm)</th>
+                    <th data-i18n="th_verified">Verificado</th>
+                    <th data-i18n="th_last_analysis">Último Análisis</th>
+                    <th data-i18n="th_efficacy">Eficacia (1-5)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_chem_b"><i class="fa-solid fa-flask-vial"></i>  Sección B - Tratamiento Químico a Nivel de Pozo (Fondo)</div>
+            </div>
+            <div class="tech-card-body table-container" style="padding:0;">
+              <table class="tech-table" id="table-chemical-b">
+                <thead>
+                  <tr>
+                    <th data-i18n="th_well_system">Pozo / Sistema</th>
+                    <th data-i18n="th_chem_type">Tipo Químico</th>
+                    <th data-i18n="th_product_name">Nombre Producto</th>
+                    <th data-i18n="th_supplier">Proveedor</th>
+                    <th data-i18n="th_inj_point">Punto de Inyección</th>
+                    <th data-i18n="th_mode">Modo</th>
+                    <th class="num-col" data-i18n="th_dosage">Dosificación (ppm)</th>
+                    <th class="num-col" data-i18n="th_rate_l_day">Tasa (L/día)</th>
+                    <th class="num-col" data-i18n="th_target_conc">Conc. Objetivo (ppm)</th>
+                    <th data-i18n="th_verified">Verificado</th>
+                    <th data-i18n="th_last_analysis">Último Análisis</th>
+                    <th data-i18n="th_efficacy">Eficacia (1-5)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 8. D&C DRILLING & COST VIEW -->
+      <div class="module-view" id="view-dc">
+        <!-- Drilling KPIs -->
+        <div class="grid-12">
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_drill_days">Días Promedio de Perforación</div>
+            <div class="kpi-value" id="kpi-dc-drill">- <span class="kpi-unit">días</span></div>
+          </div>
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_comp_days">Días Promedio de Terminación</div>
+            <div class="kpi-value" id="kpi-dc-complete">- <span class="kpi-unit">días</span></div>
+          </div>
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_avg_dc_cost">Costo Promedio D&C</div>
+            <div class="kpi-value" id="kpi-dc-cost">- <span class="kpi-unit">USD MM</span></div>
+          </div>
+        </div>
+        
+        <!-- Drilling Charts -->
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_dc_days_chart"><i class="fa-solid fa-chart-column"></i> Duración de Actividades de Perforación y Terminación por Pozo</div>
+            </div>
+            <div class="tech-card-body">
+              <div id="chart-dc-days" class="chart-container" style="height: 350px;"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Rigs Table -->
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_dc_rigs"><i class="fa-solid fa-anchor"></i> Historial de Equipos de Perforación y Costos D&C</div>
+            </div>
+            <div class="tech-card-body table-container" style="padding:0;">
+              <table class="tech-table" id="table-dc">
+                <thead>
+                  <tr>
+                    <th data-i18n="th_start_date">Fecha Inicio</th>
+                    <th data-i18n="th_well_name">Nombre Pozo</th>
+                    <th data-i18n="th_drilling_rig">Equipo de Perforación</th>
+                    <th data-i18n="th_rig_type">Tipo de Plataforma</th>
+                    <th class="num-col" data-i18n="th_drill_days">Días Perforación</th>
+                    <th class="num-col" data-i18n="th_comp_days">Días Terminación</th>
+                    <th class="num-col" data-i18n="th_cost_mxn">Costo Total (MXN MM)</th>
+                    <th class="num-col" data-i18n="th_exchange_rate">Tasa de Cambio</th>
+                    <th class="num-col" data-i18n="th_cost_usd">Costo Total (USD MM)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </section>
+  </main>
+  
+  <!-- Main Application Logic Script -->
+  <script src="app.js"></script>
+</body>
+</html>
