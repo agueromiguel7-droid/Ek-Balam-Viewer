@@ -30,6 +30,79 @@ def load_credentials():
     with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
+def compile_in_memory():
+    import base64
+    import re
+    
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    index_path = os.path.join(base_dir, "index.html")
+    css_path = os.path.join(base_dir, "style.css")
+    app_path = os.path.join(base_dir, "app.js")
+    logo_path = os.path.join(base_dir, "mi_logo.png")
+    
+    data_path = os.path.join(base_dir, "public", "data.js")
+    if not os.path.exists(data_path):
+        data_path = os.path.join(base_dir, "data.js")
+        
+    # Verificar existencia de archivos esenciales
+    for path, name in [(index_path, "index.html"), (css_path, "style.css"), 
+                       (data_path, "public/data.js o data.js"), (app_path, "app.js")]:
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"No se encontró el archivo requerido: {name}")
+            
+    # Leer archivos
+    with open(index_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+    with open(css_path, "r", encoding="utf-8") as f:
+        css_content = f.read()
+    with open(app_path, "r", encoding="utf-8") as f:
+        app_content = f.read()
+    with open(data_path, "r", encoding="utf-8") as f:
+        data_content = f.read()
+        
+    # Validar tamaño de datos
+    if len(data_content.strip()) < 100:
+        raise ValueError("El archivo de datos data.js está vacío o contiene información insuficiente.")
+        
+    # Validar estructura de datos JSON
+    try:
+        js_clean = data_content.strip()
+        assign_idx = js_clean.find("window.FIELD_DATA =")
+        if assign_idx != -1:
+            js_clean = js_clean[assign_idx + len("window.FIELD_DATA ="):].strip()
+        if js_clean.endswith(";"):
+            js_clean = js_clean[:-1].strip()
+        
+        import json
+        json.loads(js_clean)
+    except Exception as e:
+        raise ValueError(f"La base de datos data.js está corrupta o incompleta (JSON inválido): {e}")
+        
+    # Incrustar logo
+    if os.path.exists(logo_path):
+        with open(logo_path, "rb") as f:
+            logo_data = f.read()
+            logo_base64 = base64.b64encode(logo_data).decode("utf-8")
+        html_content = html_content.replace('src="mi_logo.png"', f'src="data:image/png;base64,{logo_base64}"')
+        
+    # Reemplazos de scripts y CSS
+    css_pattern = r'<link\s+[^>]*href=["\']style\.css["\'][^>]*>'
+    html_content, css_count = re.subn(css_pattern, f"<style>\n{css_content}\n</style>", html_content)
+    
+    data_pattern = r'<script\s+[^>]*src=["\'](?:public/)?data\.js["\'][^>]*>\s*</script>'
+    html_content, data_count = re.subn(data_pattern, f"<script>\n{data_content}\n</script>", html_content)
+    if data_count == 0:
+        raise ValueError("No se encontró la referencia a public/data.js en index.html.")
+        
+    app_pattern = r'<script\s+[^>]*src=["\']app\.js["\'][^>]*>\s*</script>'
+    html_content, app_count = re.subn(app_pattern, f"<script>\n{app_content}\n</script>", html_content)
+    if app_count == 0:
+        raise ValueError("No se encontró la referencia a app.js en index.html.")
+        
+    data_size_kb = len(data_content) / 1024
+    return html_content, data_size_kb
+
 # Inicializar sesión
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
@@ -182,17 +255,15 @@ else:
     </style>
     """, unsafe_allow_html=True)
 
-    # Compilar automáticamente en cada inicio del servidor para asegurar que todo esté integrado
-    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist", "index.html")
+    # Compilar y obtener el HTML en memoria
     compiled_successfully = False
     compilation_error = None
+    html_content = None
+    data_size_kb = 0.0
     
     try:
-        import compile_app
-        # Forzar recarga del módulo para ejecutar el código actualizado
-        import importlib
-        importlib.reload(compile_app)
-        compiled_successfully = compile_app.compile_app()
+        html_content, data_size_kb = compile_in_memory()
+        compiled_successfully = True
     except Exception as e:
         compiled_successfully = False
         compilation_error = str(e)
@@ -201,34 +272,20 @@ else:
         st.error("Error crítico: La compilación del visor de datos falló.")
         if compilation_error:
             st.code(compilation_error)
-        else:
-            st.warning("Verifique la consola de Streamlit para más detalles. Posiblemente 'public/data.js' está vacío, corrupto o incompleto.")
+        st.warning("Verifique su repositorio de GitHub. Asegúrese de que el archivo 'public/data.js' no esté vacío, corrupto o incompleto.")
     else:
-        # Cargar el archivo autocontenido
-        with open(output_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
-        
-        # Calcular tamaños de archivo para diagnóstico
-        data_path_diagnose = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public", "data.js")
-        if not os.path.exists(data_path_diagnose):
-            data_path_diagnose = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.js")
-            
-        data_size_kb = os.path.getsize(data_path_diagnose) / 1024 if os.path.exists(data_path_diagnose) else 0
-        html_size_kb = os.path.getsize(output_path) / 1024 if os.path.exists(output_path) else 0
+        # Calcular el tamaño del HTML compilado en memoria
+        html_size_kb = len(html_content) / 1024
         
         # Mostrar información de diagnóstico visible en la parte superior
-        st.caption(f"🔧 Visor de Datos - Base de Datos: {data_size_kb:.1f} KB | HTML: {html_size_kb:.1f} KB")
+        st.caption(f"🔧 Visor de Datos (Compilado en Memoria) - Base de Datos: {data_size_kb:.1f} KB | HTML: {html_size_kb:.1f} KB")
         
-        # Verificar que los datos realmente se inyectaron y contienen información de pozos
-        if "window.FIELD_DATA" not in html_content or '"wells":' not in html_content:
-            st.error("Error crítico: La base de datos de pozos ('wells') no se encontró dentro del visor compilado. Asegúrese de que el archivo 'public/data.js' local no esté vacío y contenga los datos extraídos (ejecutando python scripts/extract_data.py) antes de subirlo.")
-        else:
-            # Añadir un comentario dinámico al final para romper el caché del iframe del navegador
-            import time
-            html_content_cached = html_content + f"\n<!-- CacheBuster: {time.time()} -->"
-            
-            # Mostrar el visor en un contenedor iframe de Streamlit
-            components.html(html_content_cached, height=950, scrolling=True)
+        # Añadir un comentario dinámico al final para romper el caché del iframe del navegador
+        import time
+        html_content_cached = html_content + f"\n<!-- CacheBuster: {time.time()} -->"
+        
+        # Mostrar el visor en un contenedor iframe de Streamlit
+        components.html(html_content_cached, height=950, scrolling=True)
 
         # Botón flotante para cerrar sesión
         st.markdown('<div class="logout-btn-container">', unsafe_allow_html=True)
