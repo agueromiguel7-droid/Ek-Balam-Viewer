@@ -26837,7 +26837,7 @@ window.FIELD_DATA = {
       "cost_usd_mm": 35.4068047337278
     },
     {
-      "date": null,
+      "date": "1970-01-01",
       "well": "Balam-3",
       "rig": "Tonala",
       "platform_type": "Jackup",
@@ -26925,7 +26925,7 @@ window.FIELD_DATA = {
       "cost_usd_mm": 22.45924453280318
     },
     {
-      "date": null,
+      "date": "1970-01-01",
       "well": "Balam-51",
       "rig": "Tonala",
       "platform_type": "Jackup",
@@ -26936,7 +26936,7 @@ window.FIELD_DATA = {
       "cost_usd_mm": null
     },
     {
-      "date": null,
+      "date": "1970-01-01",
       "well": "Balam-53",
       "rig": "Coatzacoalcos",
       "platform_type": "Jackup",
@@ -27079,7 +27079,7 @@ window.FIELD_DATA = {
       "cost_usd_mm": 30.312623274161734
     },
     {
-      "date": null,
+      "date": "1970-01-01",
       "well": "Balam 99",
       "rig": "Tonala",
       "platform_type": "Jackup",
@@ -27178,7 +27178,7 @@ window.FIELD_DATA = {
       "cost_usd_mm": 30.477154724818273
     },
     {
-      "date": null,
+      "date": "1970-01-01",
       "well": "Ek-42",
       "rig": "Tonala",
       "platform_type": "Jackup",

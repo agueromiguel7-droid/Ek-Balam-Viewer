@@ -643,7 +643,7 @@ def main():
         raw_date = row[1]
         well = row[2]
         # Date is sometimes integer year (like 2019) or standard date
-        date_str = clean_date(raw_date)
+        date_str = clean_date(raw_date) or "1970-01-01"
         if pd.isna(well):
             continue
         dc_records.append({

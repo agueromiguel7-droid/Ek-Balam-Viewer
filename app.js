@@ -651,7 +651,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const currentVal = prodWellSelect.value;
     prodWellSelect.innerHTML = `<option value="ALL">${defaultText}</option>`;
     
-    wells.sort((a,b) => a.name.localeCompare(b.name)).forEach(w => {
+    wells.sort((a,b) => (a.name || "").localeCompare(b.name || "")).forEach(w => {
       const opt = document.createElement("option");
       opt.value = w.name;
       const platformText = w.platform || (currentLang === 'es' ? 'Sin Plataforma' : 'No Platform');
@@ -792,7 +792,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Sort alphabetically
     const locateBtnText = currentLang === 'es' ? 'Ubicar' : 'Locate';
-    wells.sort((a,b) => a.name.localeCompare(b.name)).forEach(w => {
+    wells.sort((a,b) => (a.name || "").localeCompare(b.name || "")).forEach(w => {
       const tr = document.createElement("tr");
       
       let badgeClass = "badge-unknown";
@@ -1277,7 +1277,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     
     // Sort chronologically
-    press.sort((a,b) => a.date.localeCompare(b.date));
+    press.sort((a,b) => (a.date || "").localeCompare(b.date || ""));
     
     // Populate pressure table
     press.forEach(p => {
@@ -1661,7 +1661,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     
     // Sort by date descending
-    costs.sort((a,b) => b.date.localeCompare(a.date)).forEach(c => {
+    costs.sort((a,b) => (b.date || "").localeCompare(a.date || "")).forEach(c => {
       const tr = document.createElement("tr");
       const eqText = translateEquipmentType(c.equipment_type) || (currentLang === 'es' ? 'BEC Reemplazo' : 'Replacement ESP');
       tr.innerHTML = `
@@ -1764,7 +1764,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       
-      dc.sort((a,b) => b.date.localeCompare(a.date)).forEach(d => {
+      dc.sort((a,b) => (b.date || "").localeCompare(a.date || "")).forEach(d => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td style="font-family:var(--font-technical);">${d.date}</td>
