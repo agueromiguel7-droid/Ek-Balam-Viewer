@@ -56,7 +56,7 @@ def utm_to_latlon(easting, northing, zone=15, northernHemisphere=True):
     
     return math.degrees(lat), math.degrees(lon)
 
-# Normalize well name to match across sheets
+# Normalize well name to match across sheets (stripping leading zeros)
 def clean_well_name(name):
     if pd.isna(name):
         return ""
@@ -74,7 +74,8 @@ def clean_well_name(name):
     match = re.match(r'^(Balam|Ek)-\d+', name, re.IGNORECASE)
     if match:
         prefix = match.group(1).capitalize()
-        number = re.search(r'\d+', match.group(0)).group()
+        # Convertir a entero para eliminar ceros a la izquierda (ej. Ek-05 -> Ek-5)
+        number = str(int(re.search(r'\d+', match.group(0)).group()))
         return f"{prefix}-{number}"
     
     return name
@@ -251,42 +252,77 @@ def main():
                 w["lon"] = f_lon + (random.random() - 0.5) * 0.005
                 w["comments"] = (w["comments"] + " [Posición aprox por campo]").strip()
 
-    # 3. Parse Production v2
-    print("Parsing Production_v2...")
-    df_prod = xl.parse("Production_v2", header=2)
+    # 3. Parse Production (Ek Production May2026 and Balam Production May2026)
+    print("Parsing Production from Ek & Balam sheets...")
     production_records = []
-    for idx, row in df_prod.iterrows():
-        raw_well = row['Well Name']
-        if pd.isna(raw_well):
-            continue
-        well_name = clean_well_name(raw_well)
-        date_str = clean_date(row['Date'])
-        
-        oil_kbpd = clean_float(row['Oil (MBD)'])
-        gas_mmscfd = clean_float(row['GAS (MMPCD)'])
-        wtr_kbpd = clean_float(row['Wtr (MBD)'])
-        notes = str(row['Notes']).strip() if not pd.isna(row['Notes']) else ""
-        
-        if date_str is None:
-            continue
+    
+    def parse_horizontal_prod_sheet(sheet_name, field_name):
+        try:
+            df = xl.parse(sheet_name)
+        except Exception as e:
+            print(f"Error al abrir la pestaña {sheet_name}: {e}")
+            return []
             
-        oil_bpd = oil_kbpd * 1000 if oil_kbpd is not None else 0
-        wtr_bpd = wtr_kbpd * 1000 if wtr_kbpd is not None else 0
-        total_liq_bpd = oil_bpd + wtr_bpd
-        water_cut = (wtr_bpd / total_liq_bpd * 100) if total_liq_bpd > 0 else 0
+        row_labels = df.iloc[0].tolist() # Qo, Qw, Qg, Np, Gp, etc.
+        col_names = df.columns.tolist()  # Well names, Fechas, Date, etc.
         
-        production_records.append({
-            "well": well_name,
-            "rawWell": str(raw_well),
-            "date": date_str,
-            "oil_kbpd": oil_kbpd,
-            "oil_bpd": oil_bpd,
-            "gas_mmscfd": gas_mmscfd,
-            "wtr_kbpd": wtr_kbpd,
-            "wtr_bpd": wtr_bpd,
-            "water_cut": water_cut,
-            "notes": notes
-        })
+        # Las fechas están en la primera columna a partir de la fila 1
+        dates = [clean_date(d) for d in df.iloc[1:, 0]]
+        
+        records = []
+        # Identificar columnas de pozos
+        for col_idx in range(1, len(col_names)):
+            col_header = str(col_names[col_idx]).strip()
+            if col_header and not col_header.startswith("Unnamed:") and col_header != "Date" and col_header != "Fechas":
+                well_name = clean_well_name(col_header)
+                
+                for row_offset, dt in enumerate(dates):
+                    if dt is None:
+                        continue
+                    row_idx = row_offset + 1
+                    
+                    well_qo = 0.0
+                    well_qw = 0.0
+                    well_qg = 0.0
+                    
+                    for offset in range(0, 7):
+                        curr_col = col_idx + offset
+                        if curr_col >= len(col_names):
+                            break
+                        if offset > 0 and str(col_names[curr_col]).strip() and not str(col_names[curr_col]).startswith("Unnamed:"):
+                            break
+                            
+                        label = str(row_labels[curr_col - 1]).strip() if curr_col > 0 else ""
+                        val = clean_float(df.iloc[row_idx, curr_col])
+                        val = 0.0 if val is None else val
+                        
+                        if label == "Qo":
+                            well_qo = val
+                        elif label == "Qw":
+                            well_qw = val
+                        elif label == "Qg":
+                            well_qg = val
+                            
+                    total_liq = well_qo + well_qw
+                    water_cut = (well_qw / total_liq * 100) if total_liq > 0 else 0.0
+                    
+                    records.append({
+                        "well": well_name,
+                        "rawWell": col_header,
+                        "date": dt,
+                        "oil_kbpd": well_qo / 1000.0,
+                        "oil_bpd": well_qo,
+                        "gas_mmscfd": well_qg,
+                        "wtr_kbpd": well_qw / 1000.0,
+                        "wtr_bpd": well_qw,
+                        "water_cut": water_cut,
+                        "notes": ""
+                    })
+        print(f"Extraídos {len(records)} registros de producción de {sheet_name}")
+        return records
+
+    production_records.extend(parse_horizontal_prod_sheet("Ek Production May2026", "Ek"))
+    production_records.extend(parse_horizontal_prod_sheet("Balam Production May2026", "Balam"))
 
     # 4. Parse Pressures (Pws)
     print("Parsing Pressure sheets...")
