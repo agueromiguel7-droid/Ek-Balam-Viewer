@@ -486,7 +486,11 @@ def main():
             "vfd_brand": str(row[9]).strip() if not pd.isna(row[9]) else "",
             "last_megger_date": megger_date,
             "motor_temp_c": str(row[11]).strip() if not pd.isna(row[11]) else "",
-            "sensor_operating": str(row[12]).strip() if not pd.isna(row[12]) else ""
+            "sensor_operating": str(row[12]).strip() if not pd.isna(row[12]) else "",
+            "field": "Ek" if well_name.lower().startswith("ek") else "Balam",
+            "reservoir": "",
+            "vendor": "",
+            "risk_zone": ""
         }
 
     # Merge with ESP operations specs
@@ -502,17 +506,23 @@ def main():
         if not well_name:
             continue
             
+        field = str(row[2]).strip() if not pd.isna(row[2]) else ""
+        reservoir = str(row[3]).strip() if not pd.isna(row[3]) else ""
         esp_vendor = str(row[4]).strip() if not pd.isna(row[4]) else ""
         esp_model = str(row[5]).strip() if not pd.isna(row[5]) else ""
         motor_hp = str(row[6]).strip() if not pd.isna(row[6]) else ""
         stages = str(row[7]).strip() if not pd.isna(row[7]) else ""
         pump_depth = str(row[8]).strip() if not pd.isna(row[8]) else ""
         screen_size = str(row[9]).strip() if not pd.isna(row[9]) else ""
+        risk_zone = str(row[18]).strip() if not pd.isna(row[18]) else ""
         
         # Merge
         if well_name in esp_live_dict:
             esp_live_dict[well_name].update({
+                "field": field,
+                "reservoir": reservoir,
                 "vendor": esp_vendor,
+                "risk_zone": risk_zone,
                 "model": esp_model,
                 "motor_hp": motor_hp,
                 "stages": stages,
@@ -524,10 +534,14 @@ def main():
             esp_live_dict[well_name] = {
                 "well": well_name,
                 "platform": str(row[1]).strip() if not pd.isna(row[1]) else "",
+                "field": field,
+                "reservoir": reservoir,
+                "vendor": esp_vendor,
+                "risk_zone": risk_zone,
                 "oil_bpd": None, "frequency_hz": None, "current_a": "", "current_b": "", "current_c": "",
                 "insulation_mohm": "", "phase_to_phase_ohm": "", "vfd_brand": "", "last_megger_date": None,
                 "motor_temp_c": "", "sensor_operating": "",
-                "vendor": esp_vendor, "model": esp_model, "motor_hp": motor_hp, "stages": stages,
+                "model": esp_model, "motor_hp": motor_hp, "stages": stages,
                 "pump_depth_m_tvd": pump_depth, "screen_size_micron": screen_size
             }
 
