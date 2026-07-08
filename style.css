@@ -620,6 +620,49 @@ body.dark .badge-injector {
   color: #93c5fd;
 }
 
+/* Risk Zone Badges */
+.badge-risk-safe {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badge-risk-low {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-risk-high {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-risk-critical {
+  background-color: #ffdad6;
+  color: #ba1a1a;
+  border: 1px dashed #ba1a1a;
+}
+
+body.dark .badge-risk-safe {
+  background-color: #064e3b;
+  color: #65dca4;
+}
+
+body.dark .badge-risk-low {
+  background-color: #1e3a8a;
+  color: #93c5fd;
+}
+
+body.dark .badge-risk-high {
+  background-color: #78350f;
+  color: #fcd34d;
+}
+
+body.dark .badge-risk-critical {
+  background-color: #850007;
+  color: #ffb4ab;
+  border: 1px dashed #ffb4ab;
+}
+
 /* Risk indicator banner */
 .risk-callout {
   background-color: var(--color-risk-bg);

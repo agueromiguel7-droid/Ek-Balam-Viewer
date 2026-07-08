@@ -173,7 +173,10 @@ document.addEventListener("DOMContentLoaded", () => {
       th_rig_type: "Tipo de Plataforma",
       th_drill_days: "Días Perforación",
       th_comp_days: "Días Terminación",
-      th_exchange_rate: "Tasa de Cambio"
+      th_exchange_rate: "Tasa de Cambio",
+      th_reservoir: "Yacimiento",
+      th_esp_vendor: "Proveedor BEC",
+      th_risk_zone: "Zona de Riesgo"
     },
     en: {
       sidebar_subtitle: "DATA ROOM VIEWER",
@@ -302,11 +305,38 @@ document.addEventListener("DOMContentLoaded", () => {
       th_rig_type: "Rig Type",
       th_drill_days: "Drilling Days",
       th_comp_days: "Completion Days",
-      th_exchange_rate: "Exchange Rate"
+      th_exchange_rate: "Exchange Rate",
+      th_reservoir: "Reservoir",
+      th_esp_vendor: "ESP Vendor",
+      th_risk_zone: "Risk Zone"
     }
   };
 
   // Helper Functions for Data Translation
+  function translateRiskZone(zone) {
+    if (!zone || zone === '-' || zone.toLowerCase() === 'nan' || zone.trim() === '') return '-';
+    const lower = zone.trim().toLowerCase();
+    if (lower === 'safe') return currentLang === 'es' ? 'Seguro' : 'Safe';
+    if (lower === 'low') return currentLang === 'es' ? 'Bajo' : 'Low';
+    if (lower === 'high') return currentLang === 'es' ? 'Alto' : 'High';
+    if (lower === 'critical') return currentLang === 'es' ? 'Crítico' : 'Critical';
+    return zone;
+  }
+
+  function getRiskZoneBadge(zone) {
+    if (!zone || zone === '-' || zone.toLowerCase() === 'nan' || zone.trim() === '') return '-';
+    const lower = zone.trim().toLowerCase();
+    let badgeClass = '';
+    if (lower === 'safe') badgeClass = 'badge-risk-safe';
+    else if (lower === 'low') badgeClass = 'badge-risk-low';
+    else if (lower === 'high') badgeClass = 'badge-risk-high';
+    else if (lower === 'critical') badgeClass = 'badge-risk-critical';
+    else return zone;
+    
+    const text = translateRiskZone(zone);
+    return `<span class="badge ${badgeClass}">${text}</span>`;
+  }
+
   function translateWellType(type) {
     if (!type) return 'N/A';
     if (currentLang === 'es') return type;
@@ -1547,7 +1577,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const emptyMsg = currentLang === 'es'
           ? 'No hay registros de bombas BEC para el filtro activo.'
           : 'No ESP pump records for the active filter.';
-        tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;">${emptyMsg}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="17" style="text-align:center;">${emptyMsg}</td></tr>`;
       } else {
         esps.forEach(e => {
           const tr = document.createElement("tr");
@@ -1555,10 +1585,15 @@ document.addEventListener("DOMContentLoaded", () => {
           // Format Megger test date
           const date = e.last_megger_date || '-';
           const sensorText = e.sensor_operating === 'Sí' ? (currentLang === 'es' ? 'Sí' : 'Yes') : (currentLang === 'es' ? 'No' : 'No');
+          const riskZoneBadge = getRiskZoneBadge(e.risk_zone);
           
           tr.innerHTML = `
             <td style="font-weight:500;">${e.platform}</td>
             <td style="font-weight:600; color:var(--color-primary);">${e.well}</td>
+            <td>${e.field || '-'}</td>
+            <td>${e.reservoir || '-'}</td>
+            <td>${e.vendor || '-'}</td>
+            <td>${riskZoneBadge}</td>
             <td class="num-col">${e.oil_bpd ? e.oil_bpd.toLocaleString() : '-'}</td>
             <td class="num-col">${e.frequency_hz ? e.frequency_hz.toFixed(1) : '-'}</td>
             <td class="num-col">${e.current_a}</td>
