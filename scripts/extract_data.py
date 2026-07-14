@@ -672,6 +672,44 @@ def main():
             "cost_usd_mm": (clean_float(row[7]) / clean_float(row[8])) if clean_float(row[7]) and clean_float(row[8]) else None
         })
 
+    # 12. Parse Pemex WO Plan
+    print("Parsing Pemex WO Plan...")
+    df_wo_plan = xl.parse("Pemex WO Plan")
+    df_wo_plan.columns = [c.strip() for c in df_wo_plan.columns]
+    wo_plan_records = []
+    for idx, row in df_wo_plan.iterrows():
+        equipment = str(row['Equipment']).strip() if not pd.isna(row['Equipment']) else ""
+        if not equipment or equipment.lower() == "nan":
+            continue
+        well_name = clean_well_name(row['Well Name']) if not pd.isna(row['Well Name']) else ""
+        platform = str(row.get('Platform ', row.get('Platform', ''))).strip()
+        if pd.isna(platform) or platform.lower() == "nan":
+            platform = ""
+            
+        pozos = str(row['Pozos']).strip() if not pd.isna(row['Pozos']) else ""
+        formation = str(row['Formation']).strip() if not pd.isna(row['Formation']) else ""
+        wo_type = str(row['Type']).strip() if not pd.isna(row['Type']) else ""
+        subtype = str(row['Subtype']).strip() if not pd.isna(row['Subtype']) else ""
+        
+        start_date = clean_date(row['Start'])
+        end_date = clean_date(row['End'])
+        qo = clean_float(row['Qo'])
+        comments = str(row['COMMENTS']).strip() if not pd.isna(row['COMMENTS']) else ""
+        
+        wo_plan_records.append({
+            "equipment": equipment,
+            "platform": platform,
+            "pozos": pozos,
+            "well_name": well_name,
+            "formation": formation,
+            "type": wo_type,
+            "subtype": subtype,
+            "start": start_date,
+            "end": end_date,
+            "qo": qo,
+            "comments": comments
+        })
+
     # COMPACT AND OUTPUT
     data_structure = {
         "wells": list(wells_dict.values()),
@@ -683,7 +721,8 @@ def main():
         "chemical_treatment": chem_treatments,
         "water_diagnostics": water_diagnostics,
         "esp_historical_costs": esp_costs,
-        "historical_dc": dc_records
+        "historical_dc": dc_records,
+        "pemex_wo_plan": wo_plan_records
     }
     
     print("\nExtraction Summary:")
@@ -697,6 +736,7 @@ def main():
     print(f"- Water diagnostics: {len(data_structure['water_diagnostics'])}")
     print(f"- ESP cost events: {len(data_structure['esp_historical_costs'])}")
     print(f"- D&C rig history records: {len(data_structure['historical_dc'])}")
+    print(f"- Pemex WO Plan records: {len(data_structure['pemex_wo_plan'])}")
     
     public_dir = r"d:\3_Trabajo\65_Sierra Madre\1_Ek-Balam\17_Actuliación Cuarto de Datos\Ek-Balam Viewer\public"
     os.makedirs(public_dir, exist_ok=True)
