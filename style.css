@@ -772,6 +772,381 @@ body.dark .timeline-activity {
   color: var(--color-on-surface-variant);
 }
 
+
+/* CSS-based Interventions Gantt Chart */
+.gantt-scroll-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+}
+
+.gantt-grid {
+  width: max-content;
+  min-width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-surface-lowest);
+}
+
+.gantt-header-row {
+  display: flex;
+  flex-direction: row;
+  height: 36px;
+  align-items: center;
+}
+
+.gantt-header-row.years-row {
+  height: 32px;
+  font-family: var(--font-display);
+}
+
+.gantt-header-row.months-row {
+  height: 40px;
+  border-bottom: 2px solid var(--color-border-soft);
+}
+
+.gantt-header-rig-cell {
+  width: 250px;
+  height: 100%;
+  flex-shrink: 0;
+  position: sticky;
+  left: 0;
+  z-index: 12;
+  background-color: var(--color-surface-low);
+  display: flex;
+  align-items: center;
+  padding-left: 16px;
+  box-sizing: border-box;
+}
+
+.rig-header-label {
+  font-family: var(--font-technical);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-on-surface-variant);
+  letter-spacing: 0.05em;
+}
+
+.gantt-header-year-cell {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-surface-low);
+  box-sizing: border-box;
+}
+
+.year-label {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-primary);
+}
+
+body.dark .year-label {
+  color: var(--color-on-surface);
+}
+
+.gantt-header-month-cell {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-surface-lowest);
+  box-sizing: border-box;
+}
+
+.month-label {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--color-on-surface-variant);
+  text-transform: uppercase;
+}
+
+.gantt-row {
+  display: flex;
+  flex-direction: row;
+  height: 60px;
+  border-bottom: 1px solid var(--color-border-soft);
+  align-items: center;
+}
+
+.gantt-row:hover {
+  background-color: var(--color-gray-light);
+}
+
+.gantt-rig-cell {
+  width: 250px;
+  height: 100%;
+  flex-shrink: 0;
+  position: sticky;
+  left: 0;
+  z-index: 11;
+  background-color: var(--color-surface-lowest);
+  display: flex;
+  align-items: center;
+  padding-left: 16px;
+  box-sizing: border-box;
+}
+
+.gantt-row:hover .gantt-rig-cell {
+  background-color: var(--color-gray-light);
+}
+
+.rig-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+body.dark .rig-name {
+  color: var(--color-on-surface);
+}
+
+.gantt-timeline-cell {
+  position: relative;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.gantt-grid-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--color-border-soft);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.gantt-bar-item {
+  position: absolute;
+  top: 15px;
+  height: 30px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  padding: 0 4px;
+}
+
+.gantt-bar-item:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.15), 0 3px 6px -3px rgba(0, 0, 0, 0.1);
+  z-index: 5;
+}
+
+.gantt-bar-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #ffffff;
+  font-family: var(--font-technical);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  pointer-events: none;
+}
+
+/* Colors for Gantt Bars */
+.bar-rme {
+  background-color: #388e3c;
+  border: 1px solid #1b5e20;
+}
+
+.bar-rma {
+  background-color: #1976d2;
+  border: 1px solid #0d47a1;
+}
+
+.bar-new-well {
+  background-color: #f57c00;
+  border: 1px solid #e65100;
+}
+
+.bar-other {
+  background-color: #78909c;
+  border: 1px solid #455a64;
+}
+
+.bar-gap-flexibility {
+  background-color: var(--color-surface-lowest);
+  border: 1.5px dashed var(--color-outline-variant);
+}
+
+.bar-gap-flexibility:hover {
+  background-color: var(--color-surface-low);
+}
+
+.bar-gap-flexibility .gantt-bar-label {
+  color: var(--color-on-surface-variant);
+  font-weight: 600;
+  font-size: 8.5px;
+}
+
+.bar-gap-movement {
+  background-color: var(--color-surface-low);
+  border: 1.5px dashed var(--color-secondary);
+  opacity: 0.85;
+}
+
+.bar-gap-movement:hover {
+  background-color: var(--color-surface-container);
+}
+
+.bar-gap-movement .gantt-bar-label {
+  color: var(--color-secondary);
+  font-weight: 600;
+  font-size: 8.5px;
+}
+
+/* Helper Border Utilities */
+.border-right {
+  border-right: 1px solid var(--color-border-soft);
+}
+
+.border-bottom {
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+/* Detail Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(10, 14, 23, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-content {
+  background-color: var(--color-surface-lowest);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transform: translateY(20px);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.modal-overlay.active .modal-content {
+  transform: translateY(0);
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border-soft);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--color-surface-low);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+body.dark .modal-header h3 {
+  color: var(--color-on-surface);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--color-outline);
+  transition: color 0.15s ease;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.modal-close:hover {
+  color: var(--color-error);
+  background-color: var(--color-surface-low);
+}
+
+.modal-body {
+  padding: 20px 24px 28px 24px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px 24px;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-row.full-width {
+  grid-column: span 2;
+}
+
+.detail-label {
+  font-family: var(--font-technical);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  letter-spacing: 0.05em;
+}
+
+.detail-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+  font-family: var(--font-body);
+}
+
+.detail-comments {
+  font-size: 13px;
+  color: var(--color-on-surface);
+  background-color: var(--color-surface-low);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  min-height: 60px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  font-family: var(--font-body);
+  box-sizing: border-box;
+}
+
 /* Responsive collapse rules */
 @media (max-width: 1024px) {
   .grid-12 {

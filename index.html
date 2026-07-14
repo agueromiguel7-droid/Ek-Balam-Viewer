@@ -62,6 +62,10 @@
         <i class="fa-solid fa-screwdriver-wrench"></i>
         <span data-i18n="menu_dc">Perforación y Costos</span>
       </div>
+      <div class="menu-item" data-view="interventions">
+        <i class="fa-solid fa-calendar-days"></i>
+        <span data-i18n="menu_interventions">Plan de Intervenciones</span>
+      </div>
     </nav>
     
     <div id="sidebar-footer">
@@ -610,8 +614,64 @@
         </div>
       </div>
       
+      <!-- 9. PLAN DE INTERVENCIONES VIEW -->
+      <div class="module-view" id="view-interventions">
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_interventions"><i class="fa-solid fa-calendar-days"></i> Cronograma de Intervenciones (2026 - 2028)</div>
+            </div>
+            <div class="tech-card-body" style="padding: 0; overflow: hidden;">
+              <div id="gantt-timeline-container" class="gantt-scroll-container">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
     </section>
   </main>
+
+  <!-- Modal de Detalles de Intervención -->
+  <div id="intervention-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-circle-info"></i> <span data-i18n="modal_title">Detalles de Intervención</span></h3>
+        <button id="modal-close-btn" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-row">
+          <span class="detail-label" data-i18n="modal_well">Pozo:</span>
+          <span id="modal-well-name" class="detail-value">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label" data-i18n="modal_equipment">Equipo:</span>
+          <span id="modal-eq-name" class="detail-value">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label" data-i18n="modal_type">Tipo de Intervención:</span>
+          <span id="modal-wo-type" class="detail-value">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label" data-i18n="modal_subtype">Subtipo:</span>
+          <span id="modal-wo-subtype" class="detail-value">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label" data-i18n="modal_dates">Período:</span>
+          <span id="modal-wo-dates" class="detail-value">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label" data-i18n="modal_qo">Prod. Inicial (Qo):</span>
+          <span id="modal-wo-qo" class="detail-value">-</span>
+        </div>
+        <div class="detail-row full-width">
+          <span class="detail-label" data-i18n="modal_comments">Comentarios:</span>
+          <div id="modal-wo-comments" class="detail-comments">-</div>
+        </div>
+      </div>
+    </div>
+  </div>
   
   <!-- Main Application Logic Script -->
   <script src="app.js"></script>

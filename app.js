@@ -176,7 +176,17 @@ document.addEventListener("DOMContentLoaded", () => {
       th_exchange_rate: "Tasa de Cambio",
       th_reservoir: "Yacimiento",
       th_esp_vendor: "Proveedor BEC",
-      th_risk_zone: "Zona de Riesgo"
+      th_risk_zone: "Zona de Riesgo",
+      menu_interventions: "Plan de Intervenciones",
+      card_title_interventions: "<i class=\"fa-solid fa-calendar-days\"></i> Cronograma de Intervenciones (2026 - 2028)",
+      modal_title: "Detalles de la Intervención",
+      modal_well: "Pozo:",
+      modal_equipment: "Equipo:",
+      modal_type: "Tipo de Intervención:",
+      modal_subtype: "Subtipo:",
+      modal_dates: "Período:",
+      modal_qo: "Producción post-intervención (Qo):",
+      modal_comments: "Comentarios:"
     },
     en: {
       sidebar_subtitle: "DATA ROOM VIEWER",
@@ -308,7 +318,17 @@ document.addEventListener("DOMContentLoaded", () => {
       th_exchange_rate: "Exchange Rate",
       th_reservoir: "Reservoir",
       th_esp_vendor: "ESP Vendor",
-      th_risk_zone: "Risk Zone"
+      th_risk_zone: "Risk Zone",
+      menu_interventions: "Interventions Plan",
+      card_title_interventions: "<i class=\"fa-solid fa-calendar-days\"></i> Interventions Schedule (2026 - 2028)",
+      modal_title: "Intervention Details",
+      modal_well: "Well:",
+      modal_equipment: "Equipment:",
+      modal_type: "Intervention Type:",
+      modal_subtype: "Subtype:",
+      modal_dates: "Period:",
+      modal_qo: "Post-intervention Prod. (Qo):",
+      modal_comments: "Comments:"
     }
   };
 
@@ -621,6 +641,8 @@ document.addEventListener("DOMContentLoaded", () => {
       updateChemicalView();
     } else if (view === "dc") {
       updateDcView();
+    } else if (view === "interventions") {
+      updateInterventionsView();
     }
   }
 
@@ -1909,6 +1931,318 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // 9. PLAN DE INTERVENCIONES VIEW CONTROLLER
+  function updateInterventionsView() {
+    const container = document.getElementById("gantt-timeline-container");
+    if (!container) return;
+    container.innerHTML = "";
+
+    const woPlan = window.FIELD_DATA.pemex_wo_plan || [];
+    if (woPlan.length === 0) {
+      const msg = currentLang === 'es' ? 'No hay planes de intervención registrados.' : 'No intervention plans recorded.';
+      container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--color-on-surface-variant); font-family: var(--font-technical);">${msg}</div>`;
+      return;
+    }
+
+    // Group interventions by Equipment (Rig)
+    const rigGroups = {};
+    woPlan.forEach(p => {
+      const eq = p.equipment;
+      if (!rigGroups[eq]) {
+        rigGroups[eq] = [];
+      }
+      rigGroups[eq].push(p);
+    });
+
+    const equipmentUiNames = {
+      "Snoobing": "A/E SNUBBING / GOMAR-1 (300 FT AE)",
+      "6027 Sandunga (350 FTAE)": "6027 Sandunga (350 FT AE)"
+    };
+    
+    const sortedRigs = Object.keys(rigGroups).sort();
+    
+    // Define timeline bounds: June 1, 2026 to April 30, 2028
+    const tStart = new Date("2026-06-01T00:00:00");
+    const tEnd = new Date("2028-04-30T00:00:00");
+    const totalMs = tEnd - tStart;
+
+    const ganttEl = document.createElement("div");
+    ganttEl.className = "gantt-grid";
+
+    // Months info list (23 months)
+    const monthsInfo = [
+      { year: 2026, month: 5, labelEs: "junio", labelEn: "June" },
+      { year: 2026, month: 6, labelEs: "julio", labelEn: "July" },
+      { year: 2026, month: 7, labelEs: "agosto", labelEn: "August" },
+      { year: 2026, month: 8, labelEs: "septiembre", labelEn: "September" },
+      { year: 2026, month: 9, labelEs: "octubre", labelEn: "October" },
+      { year: 2026, month: 10, labelEs: "noviembre", labelEn: "November" },
+      { year: 2026, month: 11, labelEs: "diciembre", labelEn: "December" },
+      
+      { year: 2027, month: 0, labelEs: "enero", labelEn: "January" },
+      { year: 2027, month: 1, labelEs: "febrero", labelEn: "February" },
+      { year: 2027, month: 2, labelEs: "marzo", labelEn: "March" },
+      { year: 2027, month: 3, labelEs: "abril", labelEn: "April" },
+      { year: 2027, month: 4, labelEs: "mayo", labelEn: "May" },
+      { year: 2027, month: 5, labelEs: "junio", labelEn: "June" },
+      { year: 2027, month: 6, labelEs: "julio", labelEn: "July" },
+      { year: 2027, month: 7, labelEs: "agosto", labelEn: "August" },
+      { year: 2027, month: 8, labelEs: "septiembre", labelEn: "September" },
+      { year: 2027, month: 9, labelEs: "octubre", labelEn: "October" },
+      { year: 2027, month: 10, labelEs: "noviembre", labelEn: "November" },
+      { year: 2027, month: 11, labelEs: "diciembre", labelEn: "December" },
+      
+      { year: 2028, month: 0, labelEs: "enero", labelEn: "January" },
+      { year: 2028, month: 1, labelEs: "febrero", labelEn: "February" },
+      { year: 2028, month: 2, labelEs: "marzo", labelEn: "March" },
+      { year: 2028, month: 3, labelEs: "abril", labelEn: "April" }
+    ];
+
+    const yearSpans = { 2026: 7, 2027: 12, 2028: 4 };
+    
+    // Header Row 1: Years
+    let yearHeaderHtml = `<div class="gantt-header-rig-cell border-bottom border-right"></div>`;
+    Object.keys(yearSpans).forEach(yr => {
+      const span = yearSpans[yr];
+      yearHeaderHtml += `<div class="gantt-header-year-cell border-bottom border-right" style="width: ${span * 110}px;">
+        <span class="year-label">${yr}</span>
+      </div>`;
+    });
+
+    // Header Row 2: Months
+    let monthHeaderHtml = `<div class="gantt-header-rig-cell border-right">
+      <span class="rig-header-label">${currentLang === 'es' ? 'EQUIPO DE INTERVENCIÓN' : 'WORKOVER EQUIPMENT'}</span>
+    </div>`;
+    monthsInfo.forEach(m => {
+      const monthLabel = currentLang === 'es' ? m.labelEs : m.labelEn;
+      monthHeaderHtml += `<div class="gantt-header-month-cell border-right" style="width: 110px;">
+        <span class="month-label">${monthLabel}</span>
+      </div>`;
+    });
+
+    const headerRow1 = document.createElement("div");
+    headerRow1.className = "gantt-header-row years-row";
+    headerRow1.innerHTML = yearHeaderHtml;
+    
+    const headerRow2 = document.createElement("div");
+    headerRow2.className = "gantt-header-row months-row";
+    headerRow2.innerHTML = monthHeaderHtml;
+
+    ganttEl.appendChild(headerRow1);
+    ganttEl.appendChild(headerRow2);
+
+    // Rows
+    sortedRigs.forEach(rigName => {
+      const uiRigName = equipmentUiNames[rigName] || rigName;
+      const interventions = rigGroups[rigName];
+
+      interventions.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+      const rowEl = document.createElement("div");
+      rowEl.className = "gantt-row";
+
+      const rigCell = document.createElement("div");
+      rigCell.className = "gantt-rig-cell border-right";
+      rigCell.innerHTML = `<span class="rig-name">${uiRigName}</span>`;
+      rowEl.appendChild(rigCell);
+
+      const timelineCell = document.createElement("div");
+      timelineCell.className = "gantt-timeline-cell";
+      timelineCell.style.width = `${23 * 110}px`;
+
+      // Vertical background month lines
+      for (let i = 0; i < 23; i++) {
+        const line = document.createElement("div");
+        line.className = "gantt-grid-line";
+        line.style.left = `${i * 110}px`;
+        timelineCell.appendChild(line);
+      }
+
+      // Generate continuous bars with gap filling
+      const timelineBars = [];
+      let lastDate = new Date(tStart);
+
+      interventions.forEach(item => {
+        const itemStart = new Date(item.start + "T00:00:00");
+        const itemEnd = new Date(item.end + "T23:59:59");
+
+        if (itemStart > lastDate) {
+          const gapMs = itemStart - lastDate;
+          const gapDays = gapMs / (1000 * 60 * 60 * 24);
+          
+          if (gapDays > 1.0) {
+            const gapType = gapDays >= 15 ? "FLEXIBILIDAD OPERATIVA" : "MOVIMIENTO DE EQUIPO";
+            timelineBars.push({
+              isGap: true,
+              type: gapType,
+              start: new Date(lastDate),
+              end: new Date(itemStart),
+              well_name: gapType === "FLEXIBILIDAD OPERATIVA" ? (currentLang === 'es' ? "FLEXIBILIDAD OPERATIVA" : "OPERATIONAL FLEXIBILITY") : (currentLang === 'es' ? "MOVIMIENTO DE EQUIPO" : "RIG MOVEMENT"),
+              comments: gapType === "FLEXIBILIDAD OPERATIVA" ? (currentLang === 'es' ? "Período disponible sin intervenciones programadas" : "Available period with no scheduled activities") : (currentLang === 'es' ? "Movimiento de equipo entre pozos" : "Moving equipment between wells")
+            });
+          }
+        }
+
+        timelineBars.push({
+          isGap: false,
+          ...item,
+          start: itemStart,
+          end: itemEnd
+        });
+
+        lastDate = new Date(itemEnd);
+      });
+
+      if (tEnd > lastDate) {
+        const gapMs = tEnd - lastDate;
+        const gapDays = gapMs / (1000 * 60 * 60 * 24);
+        if (gapDays > 1.0) {
+          const gapType = gapDays >= 15 ? "FLEXIBILIDAD OPERATIVA" : "MOVIMIENTO DE EQUIPO";
+          timelineBars.push({
+            isGap: true,
+            type: gapType,
+            start: new Date(lastDate),
+            end: new Date(tEnd),
+            well_name: gapType === "FLEXIBILIDAD OPERATIVA" ? (currentLang === 'es' ? "FLEXIBILIDAD OPERATIVA" : "OPERATIONAL FLEXIBILITY") : (currentLang === 'es' ? "MOVIMIENTO DE EQUIPO" : "RIG MOVEMENT"),
+            comments: gapType === "FLEXIBILIDAD OPERATIVA" ? (currentLang === 'es' ? "Período disponible sin intervenciones programadas" : "Available period with no scheduled activities") : (currentLang === 'es' ? "Movimiento de equipo" : "Rig movement")
+          });
+        }
+      }
+
+      // Render bars
+      timelineBars.forEach(bar => {
+        const barStart = bar.start < tStart ? tStart : bar.start;
+        const barEnd = bar.end > tEnd ? tEnd : bar.end;
+
+        if (barEnd <= barStart) return;
+
+        const leftPx = ((barStart - tStart) / totalMs) * (23 * 110);
+        const widthPx = ((barEnd - barStart) / totalMs) * (23 * 110);
+
+        const barEl = document.createElement("div");
+        barEl.className = "gantt-bar-item";
+        barEl.style.left = `${leftPx}px`;
+        barEl.style.width = `${widthPx - 4}px`;
+
+        if (bar.isGap) {
+          if (bar.type === "FLEXIBILIDAD OPERATIVA") {
+            barEl.classList.add("bar-gap-flexibility");
+          } else {
+            barEl.classList.add("bar-gap-movement");
+          }
+        } else {
+          const type = (bar.type || "").toUpperCase();
+          if (type.includes("RME")) {
+            barEl.classList.add("bar-rme");
+          } else if (type.includes("RMA")) {
+            barEl.classList.add("bar-rma");
+          } else if (type.includes("NEW WELL") || type.includes("NUEVO") || type.includes("PERF")) {
+            barEl.classList.add("bar-new-well");
+          } else {
+            barEl.classList.add("bar-other");
+          }
+        }
+
+        const displayLabel = bar.isGap ? bar.well_name : bar.well_name.toUpperCase();
+        
+        if (widthPx > 45) {
+          barEl.innerHTML = `<span class="gantt-bar-label">${displayLabel}</span>`;
+        } else {
+          barEl.innerHTML = `<span class="gantt-bar-label">&bull;</span>`;
+        }
+
+        const formattedStart = barStart.toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
+        const formattedEnd = barEnd.toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
+        barEl.title = `${displayLabel}: ${formattedStart} - ${formattedEnd}`;
+
+        barEl.addEventListener("click", () => {
+          if (bar.isGap) {
+            showInterventionModal({
+              well_name: bar.well_name,
+              equipment: uiRigName,
+              type: bar.type === "FLEXIBILIDAD OPERATIVA" ? (currentLang === 'es' ? "Flexibilidad Operativa" : "Operational Flexibility") : (currentLang === 'es' ? "Movimiento de Equipo" : "Rig Movement"),
+              subtype: "-",
+              start: barStart.toISOString().split('T')[0],
+              end: barEnd.toISOString().split('T')[0],
+              qo: null,
+              comments: bar.comments
+            });
+          } else {
+            showInterventionModal({
+              well_name: bar.well_name,
+              equipment: uiRigName,
+              type: bar.type,
+              subtype: bar.subtype,
+              start: bar.start.toISOString().split('T')[0],
+              end: bar.end.toISOString().split('T')[0],
+              qo: bar.qo,
+              comments: bar.comments
+            });
+          }
+        });
+
+        timelineCell.appendChild(barEl);
+      });
+
+      rowEl.appendChild(timelineCell);
+      ganttEl.appendChild(rowEl);
+    });
+
+    container.appendChild(ganttEl);
+  }
+
+  function showInterventionModal(data) {
+    const modal = document.getElementById("intervention-modal");
+    if (!modal) return;
+
+    document.getElementById("modal-well-name").textContent = data.well_name || "-";
+    document.getElementById("modal-eq-name").textContent = data.equipment || "-";
+    document.getElementById("modal-wo-type").textContent = data.type || "-";
+    document.getElementById("modal-wo-subtype").textContent = data.subtype || "-";
+    
+    const sDate = new Date(data.start + "T00:00:00");
+    const eDate = new Date(data.end + "T00:00:00");
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    const dateText = currentLang === 'es' 
+      ? `Del ${sDate.toLocaleDateString('es-ES', options)} al ${eDate.toLocaleDateString('es-ES', options)}`
+      : `From ${sDate.toLocaleDateString('en-US', options)} to ${eDate.toLocaleDateString('en-US', options)}`;
+    document.getElementById("modal-wo-dates").textContent = dateText;
+
+    if (data.qo !== null && !isNaN(data.qo)) {
+      document.getElementById("modal-wo-qo").textContent = `${Math.round(data.qo).toLocaleString()} bpd`;
+    } else {
+      document.getElementById("modal-wo-qo").textContent = "-";
+    }
+
+    const commentsEl = document.getElementById("modal-wo-comments");
+    if (data.comments && data.comments !== "nan" && data.comments.trim() !== "") {
+      commentsEl.textContent = data.comments;
+      commentsEl.style.fontStyle = "normal";
+    } else {
+      commentsEl.textContent = currentLang === 'es' ? "Sin comentarios registrados." : "No comments recorded.";
+      commentsEl.style.fontStyle = "italic";
+    }
+
+    modal.classList.add("active");
+  }
+
+  // Bind close buttons for modal
+  const modalCloseBtn = document.getElementById("modal-close-btn");
+  const modalOverlay = document.getElementById("intervention-modal");
+  
+  if (modalCloseBtn) {
+    modalCloseBtn.addEventListener("click", () => {
+      modalOverlay.classList.remove("active");
+    });
+  }
+  
+  if (modalOverlay) {
+    modalOverlay.addEventListener("click", (e) => {
+      if (e.target === modalOverlay) {
+        modalOverlay.classList.remove("active");
+      }
+    });
+  }
 
   // INITIAL BOOTSTRAP
   updateUILanguage();
