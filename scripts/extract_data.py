@@ -710,6 +710,85 @@ def main():
             "comments": comments
         })
 
+    # 13. Parse Production History
+    print("Parsing Production History...")
+    df_prod_hist = xl.parse("Production History", skiprows=1)
+    
+    date_col = 'Etiquetas de fila'
+    df_prod_hist[date_col] = pd.to_datetime(df_prod_hist[date_col])
+    
+    well_cols = [c for c in df_prod_hist.columns if c not in ['Unnamed: 0', date_col]]
+    
+    wells_avail_data = []
+    uptimes = []
+    downtimes = []
+    availabilities = []
+    
+    for well in well_cols:
+        series = df_prod_hist[well]
+        active_indices = df_prod_hist[df_prod_hist[well] > 0].index
+        
+        if len(active_indices) > 0:
+            first_idx = active_indices.min()
+            last_idx = active_indices.max()
+            
+            analyzed_series = series.loc[first_idx:last_idx].fillna(0)
+            
+            uptime = int((analyzed_series > 0).sum())
+            downtime = int((analyzed_series == 0).sum())
+            total = uptime + downtime
+            availability = float(uptime / total) if total > 0 else 0.0
+            
+            uptimes.append(uptime)
+            downtimes.append(downtime)
+            availabilities.append(availability)
+            
+            well_timeline = []
+            for idx in range(first_idx, last_idx + 1):
+                date_str = df_prod_hist.loc[idx, date_col].strftime('%Y-%m-%d')
+                val = df_prod_hist.loc[idx, well]
+                state = 1 if (not pd.isna(val) and val > 0) else 0
+                well_timeline.append({
+                    "date": date_str,
+                    "val": float(val) if not pd.isna(val) else 0.0,
+                    "state": state
+                })
+                
+            wells_avail_data.append({
+                "well": clean_well_name(well),
+                "first_active": df_prod_hist.loc[first_idx, date_col].strftime('%Y-%m-%d'),
+                "last_active": df_prod_hist.loc[last_idx, date_col].strftime('%Y-%m-%d'),
+                "uptime": uptime,
+                "downtime": downtime,
+                "availability": availability,
+                "timeline": well_timeline
+            })
+            
+    # Compute field stats
+    import numpy as np
+    field_stats = {}
+    if len(wells_avail_data) > 0:
+        field_stats = {
+            "uptime": {
+                "p10": float(np.percentile(uptimes, 10)),
+                "p50": float(np.percentile(uptimes, 50)),
+                "p90": float(np.percentile(uptimes, 90)),
+                "mean": float(np.mean(uptimes))
+            },
+            "downtime": {
+                "p10": float(np.percentile(downtimes, 10)),
+                "p50": float(np.percentile(downtimes, 50)),
+                "p90": float(np.percentile(downtimes, 90)),
+                "mean": float(np.mean(downtimes))
+            },
+            "availability": {
+                "p10": float(np.percentile(availabilities, 10)),
+                "p50": float(np.percentile(availabilities, 50)),
+                "p90": float(np.percentile(availabilities, 90)),
+                "mean": float(np.mean(availabilities))
+            }
+        }
+
     # COMPACT AND OUTPUT
     data_structure = {
         "wells": list(wells_dict.values()),
@@ -722,7 +801,9 @@ def main():
         "water_diagnostics": water_diagnostics,
         "esp_historical_costs": esp_costs,
         "historical_dc": dc_records,
-        "pemex_wo_plan": wo_plan_records
+        "pemex_wo_plan": wo_plan_records,
+        "wells_availability": wells_avail_data,
+        "field_availability_stats": field_stats
     }
     
     print("\nExtraction Summary:")
@@ -737,6 +818,7 @@ def main():
     print(f"- ESP cost events: {len(data_structure['esp_historical_costs'])}")
     print(f"- D&C rig history records: {len(data_structure['historical_dc'])}")
     print(f"- Pemex WO Plan records: {len(data_structure['pemex_wo_plan'])}")
+    print(f"- Wells Availability records: {len(data_structure['wells_availability'])}")
     
     public_dir = r"d:\3_Trabajo\65_Sierra Madre\1_Ek-Balam\17_Actuliación Cuarto de Datos\Ek-Balam Viewer\public"
     os.makedirs(public_dir, exist_ok=True)

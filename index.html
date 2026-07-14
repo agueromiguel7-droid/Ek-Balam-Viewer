@@ -66,6 +66,10 @@
         <i class="fa-solid fa-calendar-days"></i>
         <span data-i18n="menu_interventions">Plan de Intervenciones</span>
       </div>
+      <div class="menu-item" data-view="availability">
+        <i class="fa-solid fa-clock"></i>
+        <span data-i18n="menu_availability">Disponibilidad de Pozos</span>
+      </div>
     </nav>
     
     <div id="sidebar-footer">
@@ -625,6 +629,72 @@
               <div id="gantt-timeline-container" class="gantt-scroll-container">
                 <!-- Populated by JS -->
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 10. DISPONIBILIDAD DE POZOS VIEW -->
+      <div class="module-view" id="view-availability">
+        <!-- Control Row -->
+        <div class="grid-12" style="align-items: center; margin-bottom: -10px;">
+          <div class="col-6">
+            <label for="avail-well-select" style="font-size:12px; font-weight:700; color:var(--color-on-surface-variant); font-family:var(--font-technical); display:block; margin-bottom:4px;" data-i18n="label_select_avail_well">SELECCIONAR POZO INDIVIDUAL</label>
+            <select class="filter-select" id="avail-well-select" style="width:100%; max-width: 320px;">
+              <!-- Populated by JS -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Well Specific KPIs -->
+        <div class="grid-12">
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_well_uptime">Tiempo en Operación (Uptime)</div>
+            <div class="kpi-value" id="kpi-avail-uptime">- <span class="kpi-unit">meses</span></div>
+          </div>
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_well_downtime">Tiempo Fuera de Servicio (Downtime)</div>
+            <div class="kpi-value" id="kpi-avail-downtime">- <span class="kpi-unit">meses</span></div>
+          </div>
+          <div class="kpi-card col-4">
+            <div class="kpi-label" data-i18n="kpi_well_availability">Disponibilidad del Pozo</div>
+            <div class="kpi-value" id="kpi-avail-availability">- <span class="kpi-unit">%</span></div>
+          </div>
+        </div>
+
+        <!-- Well Outage Diagram -->
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_outage_diagram"><i class="fa-solid fa-wave-square"></i> Diagrama de Interrupción del Pozo (Uptime vs Downtime)</div>
+            </div>
+            <div class="tech-card-body">
+              <div id="chart-well-outage" class="chart-container" style="height: 280px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Field Level Statistics Table -->
+        <div class="grid-12">
+          <div class="tech-card col-12">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_field_availability_stats"><i class="fa-solid fa-calculator"></i> Estadísticas de Disponibilidad del Campo</div>
+            </div>
+            <div class="tech-card-body table-container" style="padding:0;">
+              <table class="tech-table" id="table-field-avail-stats">
+                <thead>
+                  <tr>
+                    <th data-i18n="th_avail_metric">Métrica del Campo</th>
+                    <th class="num-col" data-i18n="th_percentile_10">Percentil 10 (P10)</th>
+                    <th class="num-col" data-i18n="th_percentile_50">Percentil 50 (P50 - Mediana)</th>
+                    <th class="num-col" data-i18n="th_percentile_90">Percentil 90 (P90)</th>
+                    <th class="num-col" data-i18n="th_avail_average">Promedio (Media)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

@@ -27,6 +27,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let pressureDeclineChart = null;
   let injectionChart = null;
   let dcDaysChart = null;
+  let wellOutageChart = null;
+  let activeAvailWell = "";
 
   // DOM Elements
   const menuItems = document.querySelectorAll(".menu-item");
@@ -38,6 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const prodWellSelect = document.getElementById("prod-well-select");
   const mapWellSearch = document.getElementById("map-well-search");
   const languageSelect = document.getElementById("language-select");
+  const availWellSelect = document.getElementById("avail-well-select");
 
   // Set initial language selector value
   if (languageSelect) {
@@ -186,7 +189,19 @@ document.addEventListener("DOMContentLoaded", () => {
       modal_subtype: "Subtipo:",
       modal_dates: "Período:",
       modal_qo: "Producción post-intervención (Qo):",
-      modal_comments: "Comentarios:"
+      modal_comments: "Comentarios:",
+      menu_availability: "Disponibilidad de Pozos",
+      label_select_avail_well: "SELECCIONAR POZO INDIVIDUAL",
+      kpi_well_uptime: "Tiempo en Operación (Uptime)",
+      kpi_well_downtime: "Tiempo Fuera de Servicio (Downtime)",
+      kpi_well_availability: "Disponibilidad del Pozo",
+      card_title_outage_diagram: "<i class=\"fa-solid fa-wave-square\"></i> Diagrama de Interrupción del Pozo (Uptime vs Downtime)",
+      card_title_field_availability_stats: "<i class=\"fa-solid fa-calculator\"></i> Estadísticas de Disponibilidad del Campo",
+      th_avail_metric: "Métrica del Campo",
+      th_percentile_10: "Percentil 10 (P10)",
+      th_percentile_50: "Percentil 50 (P50 - Mediana)",
+      th_percentile_90: "Percentil 90 (P90)",
+      th_avail_average: "Promedio (Media)"
     },
     en: {
       sidebar_subtitle: "DATA ROOM VIEWER",
@@ -328,7 +343,19 @@ document.addEventListener("DOMContentLoaded", () => {
       modal_subtype: "Subtype:",
       modal_dates: "Period:",
       modal_qo: "Post-intervention Prod. (Qo):",
-      modal_comments: "Comments:"
+      modal_comments: "Comments:",
+      menu_availability: "Wells Availability",
+      label_select_avail_well: "SELECT INDIVIDUAL WELL",
+      kpi_well_uptime: "Uptime (Operating Time)",
+      kpi_well_downtime: "Downtime (Out of Service)",
+      kpi_well_availability: "Well Availability",
+      card_title_outage_diagram: "<i class=\"fa-solid fa-wave-square\"></i> Well Outage Diagram (Uptime vs Downtime)",
+      card_title_field_availability_stats: "<i class=\"fa-solid fa-calculator\"></i> Field Availability Statistics",
+      th_avail_metric: "Field Metric",
+      th_percentile_10: "Percentile 10 (P10)",
+      th_percentile_50: "Percentile 50 (P50 - Median)",
+      th_percentile_90: "Percentile 90 (P90)",
+      th_avail_average: "Average (Mean)"
     }
   };
 
@@ -643,6 +670,8 @@ document.addEventListener("DOMContentLoaded", () => {
       updateDcView();
     } else if (view === "interventions") {
       updateInterventionsView();
+    } else if (view === "availability") {
+      updateAvailabilityView();
     }
   }
 
@@ -2241,6 +2270,204 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.target === modalOverlay) {
         modalOverlay.classList.remove("active");
       }
+    });
+  }
+
+  // Availability View Functions
+  function populateAvailWellSelect() {
+    if (!availWellSelect) return;
+    availWellSelect.innerHTML = "";
+    const availData = window.FIELD_DATA.wells_availability || [];
+    if (availData.length === 0) return;
+    
+    const wells = availData.map(w => w.well).sort();
+    wells.forEach(w => {
+      const opt = document.createElement("option");
+      opt.value = w;
+      opt.textContent = w;
+      availWellSelect.appendChild(opt);
+    });
+    
+    if (!activeAvailWell || !wells.includes(activeAvailWell)) {
+      activeAvailWell = wells[0];
+    }
+    availWellSelect.value = activeAvailWell;
+  }
+
+  function updateAvailabilityView() {
+    if (availWellSelect && availWellSelect.children.length === 0) {
+      populateAvailWellSelect();
+      availWellSelect.addEventListener("change", (e) => {
+        activeAvailWell = e.target.value;
+        updateAvailabilityDetails();
+      });
+    }
+    updateAvailabilityDetails();
+    renderFieldAvailabilityStatsTable();
+  }
+
+  function updateAvailabilityDetails() {
+    const availData = window.FIELD_DATA.wells_availability || [];
+    const wellRecord = availData.find(w => w.well === activeAvailWell);
+    
+    if (!wellRecord) {
+      document.getElementById("kpi-avail-uptime").innerHTML = `- <span class="kpi-unit">meses</span>`;
+      document.getElementById("kpi-avail-downtime").innerHTML = `- <span class="kpi-unit">meses</span>`;
+      document.getElementById("kpi-avail-availability").innerHTML = `- <span class="kpi-unit">%</span>`;
+      if (wellOutageChart) {
+        wellOutageChart.destroy();
+        wellOutageChart = null;
+      }
+      document.getElementById("chart-well-outage").innerHTML = `<div style="text-align:center; padding: 40px; color:var(--color-on-surface-variant); font-style:italic;">No data available</div>`;
+      return;
+    }
+    
+    document.getElementById("kpi-avail-uptime").innerHTML = `${wellRecord.uptime} <span class="kpi-unit">${currentLang === 'es' ? 'meses' : 'months'}</span>`;
+    document.getElementById("kpi-avail-downtime").innerHTML = `${wellRecord.downtime} <span class="kpi-unit">${currentLang === 'es' ? 'meses' : 'months'}</span>`;
+    const availPercent = (wellRecord.availability * 100).toFixed(2);
+    document.getElementById("kpi-avail-availability").innerHTML = `${availPercent} <span class="kpi-unit">%</span>`;
+    
+    const timeline = wellRecord.timeline || [];
+    const chartData = timeline.map(t => ({
+      x: new Date(t.date + "T00:00:00").getTime(),
+      y: t.state
+    }));
+    
+    const isDark = document.body.classList.contains("dark");
+    const gridColor = isDark ? "#2e3b52" : "#e0e0e0";
+    const labelColor = isDark ? "#c3cbde" : "#616161";
+    const primaryColor = isDark ? "#8ab4f8" : "#1976d2";
+    
+    const options = {
+      series: [{
+        name: currentLang === 'es' ? "Estado" : "State",
+        data: chartData
+      }],
+      chart: {
+        type: 'line',
+        height: 280,
+        toolbar: { show: false },
+        animations: { enabled: false },
+        background: 'transparent'
+      },
+      stroke: {
+        curve: 'stepline',
+        width: 3,
+        colors: [primaryColor]
+      },
+      colors: [primaryColor],
+      grid: {
+        borderColor: gridColor,
+        strokeDashArray: 4,
+        yaxis: {
+          lines: { show: true }
+        }
+      },
+      xaxis: {
+        type: 'datetime',
+        labels: {
+          style: { colors: labelColor, fontFamily: 'var(--font-technical)', fontSize: '10px' },
+          datetimeUTC: false
+        },
+        axisBorder: { show: true, color: gridColor },
+        axisTicks: { show: true, color: gridColor }
+      },
+      yaxis: {
+        min: 0,
+        max: 1,
+        tickAmount: 1,
+        labels: {
+          formatter: function(val) {
+            if (val === 1) return currentLang === 'es' ? "Operando (UP)" : "Operating (UP)";
+            return currentLang === 'es' ? "Fuera de Servicio (DOWN)" : "Out of Service (DOWN)";
+          },
+          style: { colors: labelColor, fontFamily: 'var(--font-body)', fontSize: '10px', fontWeight: 600 }
+        }
+      },
+      tooltip: {
+        theme: isDark ? 'dark' : 'light',
+        x: { format: 'MMM yyyy' },
+        y: {
+          formatter: function(val, { seriesIndex, dataPointIndex, w }) {
+            const valBpd = timeline[dataPointIndex] ? timeline[dataPointIndex].val : 0;
+            const stateStr = val === 1 
+              ? (currentLang === 'es' ? "Operando (UP-TIME)" : "Operating (UP-TIME)") 
+              : (currentLang === 'es' ? "Fuera de Servicio (DOWN-TIME)" : "Out of Service (DOWN-TIME)");
+            return `${stateStr} <br/> <b>Qo:</b> ${Math.round(valBpd).toLocaleString()} bpd`;
+          }
+        }
+      }
+    };
+    
+    if (wellOutageChart) {
+      wellOutageChart.destroy();
+    }
+    
+    document.getElementById("chart-well-outage").innerHTML = "";
+    wellOutageChart = new ApexCharts(document.getElementById("chart-well-outage"), options);
+    wellOutageChart.render();
+  }
+
+  function renderFieldAvailabilityStatsTable() {
+    const stats = window.FIELD_DATA.field_availability_stats;
+    const tbody = document.querySelector("#table-field-avail-stats tbody");
+    if (!tbody || !stats) return;
+    
+    tbody.innerHTML = "";
+    
+    const metrics = [
+      {
+        key: "uptime",
+        labelEs: "Tiempo en Operación (Uptime) (meses)",
+        labelEn: "Uptime (Operating Time) (months)",
+        format: val => val.toFixed(1)
+      },
+      {
+        key: "downtime",
+        labelEs: "Tiempo Fuera de Servicio (Downtime) (meses)",
+        labelEn: "Downtime (Out of Service) (months)",
+        format: val => val.toFixed(1)
+      },
+      {
+        key: "availability",
+        labelEs: "Disponibilidad del Sistema Pozo (%)",
+        labelEn: "Well System Availability (%)",
+        format: val => (val * 100).toFixed(2) + "%"
+      }
+    ];
+    
+    metrics.forEach(m => {
+      const data = stats[m.key];
+      if (!data) return;
+      
+      const tr = document.createElement("tr");
+      
+      const tdLabel = document.createElement("td");
+      tdLabel.textContent = currentLang === 'es' ? m.labelEs : m.labelEn;
+      tdLabel.style.fontWeight = "700";
+      tr.appendChild(tdLabel);
+      
+      const tdP10 = document.createElement("td");
+      tdP10.className = "num-col";
+      tdP10.textContent = m.format(data.p10);
+      tr.appendChild(tdP10);
+      
+      const tdP50 = document.createElement("td");
+      tdP50.className = "num-col";
+      tdP50.textContent = m.format(data.p50);
+      tr.appendChild(tdP50);
+      
+      const tdP90 = document.createElement("td");
+      tdP90.className = "num-col";
+      tdP90.textContent = m.format(data.p90);
+      tr.appendChild(tdP90);
+      
+      const tdMean = document.createElement("td");
+      tdMean.className = "num-col";
+      tdMean.textContent = m.format(data.mean);
+      tr.appendChild(tdMean);
+      
+      tbody.appendChild(tr);
     });
   }
 
