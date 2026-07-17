@@ -70,19 +70,19 @@ def compile_app():
 
     # Reemplazar enlace de hoja de estilo local por etiqueta style en línea
     css_pattern = r'<link\s+[^>]*href=["\']style\.css["\'][^>]*>'
-    html_content, css_count = re.subn(css_pattern, f"<style>\n{css_content}\n</style>", html_content)
+    html_content, css_count = re.subn(css_pattern, lambda m: f"<style>\n{css_content}\n</style>", html_content)
     if css_count == 0:
         print("Advertencia: No se encontró la referencia a style.css en index.html.")
 
     # Reemplazar scripts JS locales por etiquetas script en línea (buscando en public/data.js o data.js)
     data_pattern = r'<script\s+[^>]*src=["\'](?:public/)?data\.js["\'][^>]*>\s*</script>'
-    html_content, data_count = re.subn(data_pattern, f"<script>\n{data_content}\n</script>", html_content)
+    html_content, data_count = re.subn(data_pattern, lambda m: f"<script>\n{data_content}\n</script>", html_content)
     if data_count == 0:
         print("Error: No se encontró la etiqueta <script src='public/data.js'> en index.html.")
         return False
     
     app_pattern = r'<script\s+[^>]*src=["\']app\.js["\'][^>]*>\s*</script>'
-    html_content, app_count = re.subn(app_pattern, f"<script>\n{app_content}\n</script>", html_content)
+    html_content, app_count = re.subn(app_pattern, lambda m: f"<script>\n{app_content}\n</script>", html_content)
     if app_count == 0:
         print("Error: No se encontró la etiqueta <script src='app.js'> en index.html.")
         return False

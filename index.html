@@ -182,6 +182,32 @@
           <div class="tech-card col-12">
             <div class="tech-card-header">
               <div class="tech-card-title" data-i18n="card_title_map"><i class="fa-solid fa-compass"></i> Ubicación Geográfica de Pozos (UTM a Lat/Lon)</div>
+              <div class="map-legend">
+                <div class="legend-item">
+                  <span class="legend-dot prod-dot"></span>
+                  <span data-i18n="legend_prod">Productor</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot inj-dot"></span>
+                  <span data-i18n="legend_inj">Inyector</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot shut-dot"></span>
+                  <span data-i18n="legend_shut">Cerrado</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot inactive-dot"></span>
+                  <span data-i18n="legend_inactive">Inactivo/Otro</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-poly-ek"></span>
+                  <span data-i18n="legend_ek">Límite Ek</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-poly-balam"></span>
+                  <span data-i18n="legend_balam">Límite Balam</span>
+                </div>
+              </div>
             </div>
             <div class="tech-card-body" style="padding: 0;">
               <div id="map" class="map-container" style="height: 520px; border-radius: 0;"></div>
@@ -674,13 +700,14 @@
           </div>
         </div>
 
-        <!-- Field Level Statistics Table -->
+        <!-- Field Level Statistics (Historical) -->
         <div class="grid-12">
-          <div class="tech-card col-12">
+          <!-- Table (col-8) -->
+          <div class="tech-card col-8">
             <div class="tech-card-header">
-              <div class="tech-card-title" data-i18n="card_title_field_availability_stats"><i class="fa-solid fa-calculator"></i> Estadísticas de Disponibilidad del Campo</div>
+              <div class="tech-card-title" data-i18n="card_title_field_availability_stats"><i class="fa-solid fa-calculator"></i> Estadísticas de Disponibilidad del Campo (Histórico Completo)</div>
             </div>
-            <div class="tech-card-body table-container" style="padding:0;">
+            <div class="tech-card-body table-container" style="padding:0; overflow: visible;">
               <table class="tech-table" id="table-field-avail-stats">
                 <thead>
                   <tr>
@@ -695,6 +722,58 @@
                   <!-- Populated by JS -->
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <!-- Histogram (col-4) -->
+          <div class="tech-card col-4">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_avail_histogram"><i class="fa-solid fa-chart-bar"></i> Distribución de Disponibilidad (Histórico)</div>
+            </div>
+            <div class="tech-card-body" style="padding: 10px;">
+              <div id="chart-field-avail-hist-full" style="height: 180px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Field Level Statistics (Dynamic Year) -->
+        <div class="grid-12">
+          <!-- Table & Selector (col-8) -->
+          <div class="tech-card col-8">
+            <div class="tech-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div class="tech-card-title" data-i18n="card_title_field_availability_stats_dynamic"><i class="fa-solid fa-calendar-days"></i> Estadísticas por Año de Inicio Seleccionable</div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <label for="avail-start-year-select" style="font-size:11px; font-weight:700; color:var(--color-on-surface-variant); font-family:var(--font-technical);" data-i18n="label_start_year">AÑO INICIO:</label>
+                <select class="filter-select" id="avail-start-year-select" style="padding: 4px 8px; font-size:12px;">
+                  <!-- Populated by JS (1991 to 2025) -->
+                </select>
+              </div>
+            </div>
+            <div class="tech-card-body table-container" style="padding:0; overflow: visible;">
+              <table class="tech-table" id="table-field-avail-stats-dynamic">
+                <thead>
+                  <tr>
+                    <th data-i18n="th_avail_metric">Métrica del Campo</th>
+                    <th class="num-col" data-i18n="th_percentile_10">Percentil 10 (P10)</th>
+                    <th class="num-col" data-i18n="th_percentile_50">Percentil 50 (P50 - Mediana)</th>
+                    <th class="num-col" data-i18n="th_percentile_90">Percentil 90 (P90)</th>
+                    <th class="num-col" data-i18n="th_avail_average">Promedio (Media)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Histogram (col-4) -->
+          <div class="tech-card col-4">
+            <div class="tech-card-header">
+              <div class="tech-card-title" data-i18n="card_title_avail_histogram_dynamic"><i class="fa-solid fa-chart-bar"></i> Distribución de Disponibilidad (Dinámico)</div>
+            </div>
+            <div class="tech-card-body" style="padding: 10px;">
+              <div id="chart-field-avail-hist-dynamic" style="height: 180px;"></div>
             </div>
           </div>
         </div>

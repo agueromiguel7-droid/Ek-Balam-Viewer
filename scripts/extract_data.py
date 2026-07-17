@@ -789,6 +789,67 @@ def main():
             }
         }
 
+    # 14. Parse Polygon Coordinates
+    print("Parsing Polygon Coordinates...")
+    df_poly = xl.parse("Polygon Coordinates", header=None)
+    
+    def parse_dms(text):
+        if pd.isna(text):
+            return None
+        text_str = str(text).strip().lower()
+        is_west = False
+        if 'oeste' in text_str or 'west' in text_str:
+            is_west = True
+        else:
+            words = re.findall(r'\b[a-z]+\b', text_str)
+            if 'o' in words or 'w' in words:
+                is_west = True
+                
+        parts = [float(x) for x in re.findall(r'\d+', text_str)]
+        if len(parts) >= 3:
+            d, m, s = parts[0], parts[1], parts[2]
+        elif len(parts) == 2:
+            d, m, s = parts[0], parts[1], 0.0
+        elif len(parts) == 1:
+            d, m, s = parts[0], 0.0, 0.0
+        else:
+            return None
+            
+        dd = d + m/60.0 + s/3600.0
+        if is_west:
+            dd = -dd
+        return dd
+
+    ek_poly = []
+    balam_poly = []
+    current_field = None
+
+    for idx, row in df_poly.iterrows():
+        cells = [str(row[i]).strip() if not pd.isna(row[i]) else "" for i in range(4)]
+        row_text = " ".join(cells).lower()
+        
+        if "campo ek" in row_text:
+            current_field = "Ek"
+            continue
+        elif "campo balam" in row_text:
+            current_field = "Balam"
+            continue
+            
+        if any("vertice" in c.lower().replace("é", "e") for c in cells):
+            v_idx = -1
+            for i, c in enumerate(cells):
+                if "vertice" in c.lower().replace("é", "e"):
+                    v_idx = i
+                    break
+            if v_idx != -1 and v_idx + 2 < len(cells):
+                lon = parse_dms(cells[v_idx + 1])
+                lat = parse_dms(cells[v_idx + 2])
+                if lon is not None and lat is not None:
+                    if current_field == "Ek":
+                        ek_poly.append([lat, lon])
+                    elif current_field == "Balam":
+                        balam_poly.append([lat, lon])
+
     # COMPACT AND OUTPUT
     data_structure = {
         "wells": list(wells_dict.values()),
@@ -803,7 +864,9 @@ def main():
         "historical_dc": dc_records,
         "pemex_wo_plan": wo_plan_records,
         "wells_availability": wells_avail_data,
-        "field_availability_stats": field_stats
+        "field_availability_stats": field_stats,
+        "polygon_ek": ek_poly,
+        "polygon_balam": balam_poly
     }
     
     print("\nExtraction Summary:")
@@ -819,6 +882,8 @@ def main():
     print(f"- D&C rig history records: {len(data_structure['historical_dc'])}")
     print(f"- Pemex WO Plan records: {len(data_structure['pemex_wo_plan'])}")
     print(f"- Wells Availability records: {len(data_structure['wells_availability'])}")
+    print(f"- Ek Polygon Vertices: {len(data_structure['polygon_ek'])}")
+    print(f"- Balam Polygon Vertices: {len(data_structure['polygon_balam'])}")
     
     public_dir = r"d:\3_Trabajo\65_Sierra Madre\1_Ek-Balam\17_Actuliación Cuarto de Datos\Ek-Balam Viewer\public"
     os.makedirs(public_dir, exist_ok=True)

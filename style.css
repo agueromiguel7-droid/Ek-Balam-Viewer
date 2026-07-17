@@ -1147,6 +1147,12 @@ body.dark .modal-header h3 {
   box-sizing: border-box;
 }
 
+
+/* Histograms layout styling */
+#chart-field-avail-hist-full, #chart-field-avail-hist-dynamic {
+  width: 100%;
+}
+
 /* Responsive collapse rules */
 @media (max-width: 1024px) {
   .grid-12 {
@@ -1166,3 +1172,109 @@ body.dark .modal-header h3 {
     padding: 12px;
   }
 }
+
+/* Map styling and legend */
+#map {
+  background-color: #d4e6f4 !important; /* light blue ocean */
+}
+body.dark #map {
+  background-color: #0b1626 !important; /* deep navy blue ocean */
+}
+.leaflet-tile {
+  opacity: 0.7; /* let the ocean blue background shine through */
+}
+body.dark .leaflet-tile {
+  opacity: 0.55; /* let the deep navy blue ocean background shine through */
+}
+
+.map-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.prod-dot {
+  background-color: #65dca4;
+  border: 2px solid #00190d;
+}
+
+.inj-dot {
+  background-color: #50dcff;
+  border: 2px solid #00687b;
+}
+
+.shut-dot {
+  background-color: #ffdad6;
+  border: 2px solid #ba1a1a;
+}
+
+.inactive-dot {
+  background-color: #9ca3af;
+  border: 2px solid #6b7280;
+}
+
+.legend-poly-ek {
+  width: 16px;
+  height: 10px;
+  background-color: rgba(245, 124, 0, 0.15);
+  border: 2px dashed #f57c00;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+body.dark .legend-poly-ek {
+  background-color: rgba(255, 167, 38, 0.15);
+  border-color: #ffa726;
+}
+
+.legend-poly-balam {
+  width: 16px;
+  height: 10px;
+  background-color: rgba(123, 31, 162, 0.15);
+  border: 2px dashed #7b1fa2;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+body.dark .legend-poly-balam {
+  background-color: rgba(186, 104, 200, 0.15);
+  border-color: #ba68c8;
+}
+
+/* Custom horizontal alignment override for ApexCharts legends */
+.apexcharts-legend {
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  padding: 0 10px !important;
+}
+
+.apexcharts-legend-series {
+  display: inline-flex !important;
+  align-items: center !important;
+  margin: 4px 16px !important;
+}
+

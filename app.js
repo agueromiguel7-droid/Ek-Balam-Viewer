@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Map and Chart instances
   let leafletMap = null;
   let activeMapMarkers = [];
+  let polygonLayers = [];
   let lightTileLayer = null;
   let darkTileLayer = null;
   
@@ -29,6 +30,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let dcDaysChart = null;
   let wellOutageChart = null;
   let activeAvailWell = "";
+  let histFullChart = null;
+  let histDynamicChart = null;
+  let activeAvailStartYear = 2017;
 
   // DOM Elements
   const menuItems = document.querySelectorAll(".menu-item");
@@ -41,6 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const mapWellSearch = document.getElementById("map-well-search");
   const languageSelect = document.getElementById("language-select");
   const availWellSelect = document.getElementById("avail-well-select");
+  const availStartYearSelect = document.getElementById("avail-start-year-select");
 
   // Set initial language selector value
   if (languageSelect) {
@@ -83,6 +88,12 @@ document.addEventListener("DOMContentLoaded", () => {
       label_status_shutin: "Cerrados (Shut-in):",
       label_status_injectors: "Inyectores:",
       card_title_map: "<i class=\"fa-solid fa-compass\"></i> Ubicación Geográfica de Pozos (UTM a Lat/Lon)",
+      legend_prod: "Productor",
+      legend_inj: "Inyector",
+      legend_shut: "Cerrado",
+      legend_inactive: "Inactivo/Otro",
+      legend_ek: "Límite Ek",
+      legend_balam: "Límite Balam",
       card_title_coords: "<i class=\"fa-solid fa-list\"></i> Coordenadas UTM y Elevación de Pozos",
       search_placeholder: "Buscar pozo...",
       th_well_name: "Nombre Pozo",
@@ -196,7 +207,11 @@ document.addEventListener("DOMContentLoaded", () => {
       kpi_well_downtime: "Tiempo Fuera de Servicio (Downtime)",
       kpi_well_availability: "Disponibilidad del Pozo",
       card_title_outage_diagram: "<i class=\"fa-solid fa-wave-square\"></i> Diagrama de Interrupción del Pozo (Uptime vs Downtime)",
-      card_title_field_availability_stats: "<i class=\"fa-solid fa-calculator\"></i> Estadísticas de Disponibilidad del Campo",
+      card_title_field_availability_stats: "<i class=\"fa-solid fa-calculator\"></i> Estadísticas de Disponibilidad del Campo (Histórico Completo)",
+      card_title_avail_histogram: "<i class=\"fa-solid fa-chart-bar\"></i> Distribución de Disponibilidad (Histórico)",
+      card_title_field_availability_stats_dynamic: "<i class=\"fa-solid fa-calendar-days\"></i> Estadísticas por Año de Inicio Seleccionable",
+      card_title_avail_histogram_dynamic: "<i class=\"fa-solid fa-chart-bar\"></i> Distribución de Disponibilidad (Dinámico)",
+      label_start_year: "AÑO INICIO:",
       th_avail_metric: "Métrica del Campo",
       th_percentile_10: "Percentil 10 (P10)",
       th_percentile_50: "Percentil 50 (P50 - Mediana)",
@@ -237,6 +252,12 @@ document.addEventListener("DOMContentLoaded", () => {
       label_status_shutin: "Closed (Shut-in):",
       label_status_injectors: "Injectors:",
       card_title_map: "<i class=\"fa-solid fa-compass\"></i> Geographical Well Locations (UTM to Lat/Lon)",
+      legend_prod: "Producer",
+      legend_inj: "Injector",
+      legend_shut: "Shut-in",
+      legend_inactive: "Inactive/Other",
+      legend_ek: "Ek Limit",
+      legend_balam: "Balam Limit",
       card_title_coords: "<i class=\"fa-solid fa-list\"></i> UTM Coordinates and Well Elevation",
       search_placeholder: "Search well...",
       th_well_name: "Well Name",
@@ -350,7 +371,11 @@ document.addEventListener("DOMContentLoaded", () => {
       kpi_well_downtime: "Downtime (Out of Service)",
       kpi_well_availability: "Well Availability",
       card_title_outage_diagram: "<i class=\"fa-solid fa-wave-square\"></i> Well Outage Diagram (Uptime vs Downtime)",
-      card_title_field_availability_stats: "<i class=\"fa-solid fa-calculator\"></i> Field Availability Statistics",
+      card_title_field_availability_stats: "<i class=\"fa-solid fa-calculator\"></i> Field Availability Statistics (Full History)",
+      card_title_avail_histogram: "<i class=\"fa-solid fa-chart-bar\"></i> Availability Distribution (Historical)",
+      card_title_field_availability_stats_dynamic: "<i class=\"fa-solid fa-calendar-days\"></i> Statistics by Selectable Start Year",
+      card_title_avail_histogram_dynamic: "<i class=\"fa-solid fa-chart-bar\"></i> Availability Distribution (Dynamic)",
+      label_start_year: "START YEAR:",
       th_avail_metric: "Field Metric",
       th_percentile_10: "Percentile 10 (P10)",
       th_percentile_50: "Percentile 50 (P50 - Median)",
@@ -583,6 +608,7 @@ document.addEventListener("DOMContentLoaded", () => {
         leafletMap.removeLayer(darkTileLayer);
         lightTileLayer.addTo(leafletMap);
       }
+      drawFieldPolygons();
     }
     
     // Re-render charts with correct theme colors
@@ -753,7 +779,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Centered in Gulf of Mexico (Ek-Balam Coordinates)
     leafletMap = L.map('map').setView([19.49, -91.98], 11);
     
-    lightTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    lightTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 20
@@ -843,6 +869,55 @@ document.addEventListener("DOMContentLoaded", () => {
       marker.addTo(leafletMap);
       activeMapMarkers.push(marker);
     });
+    
+    drawFieldPolygons();
+  }
+
+  function drawFieldPolygons() {
+    if (!leafletMap) return;
+    
+    // Clear old polygons
+    polygonLayers.forEach(layer => leafletMap.removeLayer(layer));
+    polygonLayers = [];
+    
+    const polyEk = window.FIELD_DATA.polygon_ek;
+    const polyBalam = window.FIELD_DATA.polygon_balam;
+    
+    const isDark = document.body.classList.contains("dark");
+    const ekColor = isDark ? "#ffa726" : "#f57c00"; // Orange
+    const balamColor = isDark ? "#ba68c8" : "#7b1fa2"; // Purple
+    
+    if (polyEk && polyEk.length > 0) {
+      const ekLayer = L.polygon(polyEk, {
+        color: ekColor,
+        weight: 2.5,
+        fillColor: ekColor,
+        fillOpacity: 0.12,
+        dashArray: '5, 5'
+      }).addTo(leafletMap);
+      
+      const popupContent = currentLang === 'es' 
+        ? "<b>Área del Campo Ek</b><br/>Límite del Polígono de Explotación" 
+        : "<b>Ek Field Area</b><br/>Exploitation Polygon Boundary";
+      ekLayer.bindPopup(popupContent);
+      polygonLayers.push(ekLayer);
+    }
+    
+    if (polyBalam && polyBalam.length > 0) {
+      const balamLayer = L.polygon(polyBalam, {
+        color: balamColor,
+        weight: 2.5,
+        fillColor: balamColor,
+        fillOpacity: 0.12,
+        dashArray: '5, 5'
+      }).addTo(leafletMap);
+      
+      const popupContent = currentLang === 'es' 
+        ? "<b>Área del Campo Balam</b><br/>Límite del Polígono de Explotación" 
+        : "<b>Balam Field Area</b><br/>Exploitation Polygon Boundary";
+      balamLayer.bindPopup(popupContent);
+      polygonLayers.push(balamLayer);
+    }
   }
 
   // Render coordinates table
@@ -1058,7 +1133,9 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       legend: {
         position: 'bottom',
-        labels: { colors: isDarkMode ? '#c3cbde' : '#101c2d' }
+        horizontalAlign: 'center',
+        labels: { colors: isDarkMode ? '#c3cbde' : '#101c2d' },
+        itemMargin: { horizontal: 15, vertical: 0 }
       },
       grid: {
         borderColor: isDarkMode ? '#2e3b52' : '#dfe1e6',
@@ -1098,7 +1175,7 @@ document.addEventListener("DOMContentLoaded", () => {
       plotOptions: {
         pie: {
           donut: {
-            size: '75%',
+            size: '60%',
             labels: {
               show: true,
               total: {
@@ -1199,7 +1276,7 @@ document.addEventListener("DOMContentLoaded", () => {
         { name: wtrSeriesName, type: "line", data: wtr }
       ],
       chart: {
-        height: 320,
+        height: 345,
         type: "line",
         stacked: false,
         fontFamily: 'Inter, sans-serif',
@@ -1249,7 +1326,9 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       legend: {
         position: 'bottom',
-        labels: { colors: isDarkMode ? '#c3cbde' : '#101c2d' }
+        horizontalAlign: 'center',
+        labels: { colors: isDarkMode ? '#c3cbde' : '#101c2d' },
+        itemMargin: { horizontal: 15, vertical: 0 }
       },
       grid: {
         borderColor: isDarkMode ? '#2e3b52' : '#dfe1e6',
@@ -1451,7 +1530,9 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       legend: {
         position: 'bottom',
-        labels: { colors: isDarkMode ? '#c3cbde' : '#101c2d' }
+        horizontalAlign: 'center',
+        labels: { colors: isDarkMode ? '#c3cbde' : '#101c2d' },
+        itemMargin: { horizontal: 15, vertical: 0 }
       },
       grid: {
         borderColor: isDarkMode ? '#2e3b52' : '#dfe1e6',
@@ -1594,7 +1675,9 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       legend: {
         position: 'bottom',
-        labels: { colors: isDarkMode ? '#c3cbde' : '#101c2d' }
+        horizontalAlign: 'center',
+        labels: { colors: isDarkMode ? '#c3cbde' : '#101c2d' },
+        itemMargin: { horizontal: 15, vertical: 0 }
       },
       grid: {
         borderColor: isDarkMode ? '#2e3b52' : '#dfe1e6',
@@ -1941,7 +2024,9 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       legend: {
         position: 'bottom',
-        labels: { colors: isDarkMode ? '#c3cbde' : '#101c2d' }
+        horizontalAlign: 'center',
+        labels: { colors: isDarkMode ? '#c3cbde' : '#101c2d' },
+        itemMargin: { horizontal: 15, vertical: 0 }
       },
       grid: {
         borderColor: isDarkMode ? '#2e3b52' : '#dfe1e6',
@@ -2302,8 +2387,16 @@ document.addEventListener("DOMContentLoaded", () => {
         updateAvailabilityDetails();
       });
     }
+    if (availStartYearSelect && availStartYearSelect.children.length === 0) {
+      populateAvailYearSelect();
+      availStartYearSelect.addEventListener("change", (e) => {
+        activeAvailStartYear = parseInt(e.target.value);
+        updateDynamicAvailabilityStats();
+      });
+    }
     updateAvailabilityDetails();
     renderFieldAvailabilityStatsTable();
+    updateDynamicAvailabilityStats();
   }
 
   function updateAvailabilityDetails() {
@@ -2469,6 +2562,336 @@ document.addEventListener("DOMContentLoaded", () => {
       
       tbody.appendChild(tr);
     });
+
+    // Draw static (historical) histogram
+    const availData = window.FIELD_DATA.wells_availability || [];
+    const availabilities = availData.map(w => w.availability);
+    
+    const p10 = stats.availability.p10;
+    const p50 = stats.availability.p50;
+    const p90 = stats.availability.p90;
+    
+    if (histFullChart) {
+      histFullChart.destroy();
+    }
+    
+    document.getElementById("chart-field-avail-hist-full").innerHTML = "";
+    const options = renderHistogram("chart-field-avail-hist-full", histFullChart, availabilities, p10, p50, p90);
+    histFullChart = new ApexCharts(document.getElementById("chart-field-avail-hist-full"), options);
+    histFullChart.render();
+  }
+
+  function populateAvailYearSelect() {
+    if (!availStartYearSelect) return;
+    availStartYearSelect.innerHTML = "";
+    const minYear = 1991;
+    const maxYear = 2025;
+    for (let y = minYear; y <= maxYear; y++) {
+      const opt = document.createElement("option");
+      opt.value = y;
+      opt.textContent = y;
+      availStartYearSelect.appendChild(opt);
+    }
+    availStartYearSelect.value = activeAvailStartYear;
+  }
+
+  function calculatePercentile(arr, p) {
+    if (arr.length === 0) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const index = (p / 100) * (sorted.length - 1);
+    const lower = Math.floor(index);
+    const upper = Math.ceil(index);
+    const weight = index - lower;
+    return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+  }
+
+  function calculateHistogramData(availabilities) {
+    const counts = Array(10).fill(0);
+    availabilities.forEach(val => {
+      let binIndex = Math.floor(val * 10);
+      if (binIndex > 9) binIndex = 9;
+      if (binIndex < 0) binIndex = 0;
+      counts[binIndex]++;
+    });
+    
+    return counts.map((count, idx) => ({
+      x: idx * 10 + 5,
+      y: count
+    }));
+  }
+
+  function renderHistogram(containerId, chartInstanceVar, availabilities, p10, p50, p90) {
+    const data = calculateHistogramData(availabilities);
+    const isDark = document.body.classList.contains("dark");
+    const gridColor = isDark ? "#2e3b52" : "#e0e0e0";
+    const labelColor = isDark ? "#c3cbde" : "#616161";
+    const primaryColor = isDark ? "#48d7f9" : "#1976d2";
+    const annotationColor = isDark ? "rgba(255, 255, 255, 0.65)" : "rgba(0, 0, 0, 0.65)";
+    
+    const options = {
+      series: [{
+        name: currentLang === 'es' ? "Pozos" : "Wells",
+        data: data
+      }],
+      chart: {
+        type: 'bar',
+        height: 180,
+        toolbar: { show: false },
+        animations: { enabled: false },
+        background: 'transparent'
+      },
+      plotOptions: {
+        bar: {
+          columnWidth: '92%',
+          colors: {
+            ranges: [{
+              from: 0,
+              to: 100,
+              color: primaryColor
+            }]
+          }
+        }
+      },
+      dataLabels: { enabled: false },
+      grid: {
+        borderColor: gridColor,
+        strokeDashArray: 4,
+        yaxis: { lines: { show: true } },
+        xaxis: { lines: { show: false } }
+      },
+      xaxis: {
+        type: 'numeric',
+        min: 0,
+        max: 100,
+        tickAmount: 10,
+        labels: {
+          style: { colors: labelColor, fontFamily: 'var(--font-technical)', fontSize: '8.5px' },
+          formatter: val => val + "%"
+        },
+        axisBorder: { show: true, color: gridColor },
+        axisTicks: { show: true, color: gridColor }
+      },
+      yaxis: {
+        labels: {
+          style: { colors: labelColor, fontFamily: 'var(--font-body)', fontSize: '8.5px' },
+          formatter: val => Math.round(val)
+        },
+        title: {
+          text: currentLang === 'es' ? "Frecuencia" : "Frequency",
+          style: { color: labelColor, fontFamily: 'var(--font-body)', fontSize: '9px', fontWeight: 600 }
+        }
+      },
+      annotations: {
+        xaxis: [
+          {
+            x: p10 * 100,
+            strokeDashArray: 3,
+            borderColor: annotationColor,
+            borderWidth: 1.5,
+            label: {
+              text: `P10:${(p10*100).toFixed(1)}%`,
+              orientation: 'horizontal',
+              position: 'top',
+              style: {
+                color: isDark ? '#fff' : '#000',
+                background: isDark ? 'var(--color-surface-dim)' : '#f5f5f5',
+                fontSize: '8px',
+                fontFamily: 'var(--font-technical)',
+                fontWeight: 700
+              }
+            }
+          },
+          {
+            x: p50 * 100,
+            strokeDashArray: 3,
+            borderColor: annotationColor,
+            borderWidth: 1.5,
+            label: {
+              text: `P50:${(p50*100).toFixed(1)}%`,
+              orientation: 'horizontal',
+              position: 'top',
+              style: {
+                color: isDark ? '#fff' : '#000',
+                background: isDark ? 'var(--color-surface-dim)' : '#f5f5f5',
+                fontSize: '8px',
+                fontFamily: 'var(--font-technical)',
+                fontWeight: 700
+              }
+            }
+          },
+          {
+            x: p90 * 100,
+            strokeDashArray: 3,
+            borderColor: annotationColor,
+            borderWidth: 1.5,
+            label: {
+              text: `P90:${(p90*100).toFixed(1)}%`,
+              orientation: 'horizontal',
+              position: 'top',
+              style: {
+                color: isDark ? '#fff' : '#000',
+                background: isDark ? 'var(--color-surface-dim)' : '#f5f5f5',
+                fontSize: '8px',
+                fontFamily: 'var(--font-technical)',
+                fontWeight: 700
+              }
+            }
+          }
+        ]
+      },
+      tooltip: {
+        theme: isDark ? 'dark' : 'light',
+        x: {
+          formatter: val => `${val-5}% - ${val+5}%`
+        },
+        y: {
+          formatter: val => `${val} ${currentLang === 'es' ? 'pozos' : 'wells'}`
+        }
+      }
+    };
+    return options;
+  }
+
+  function updateDynamicAvailabilityStats() {
+    const availData = window.FIELD_DATA.wells_availability || [];
+    const cutoffDate = new Date(activeAvailStartYear + "-01-01T00:00:00");
+    
+    const uptimes = [];
+    const downtimes = [];
+    const availabilities = [];
+    
+    availData.forEach(wellRecord => {
+      const firstActive = new Date(wellRecord.first_active + "T00:00:00");
+      const lastActive = new Date(wellRecord.last_active + "T00:00:00");
+      
+      if (lastActive < cutoffDate) {
+        return;
+      }
+      
+      const windowStart = firstActive < cutoffDate ? cutoffDate : firstActive;
+      const windowEnd = lastActive;
+      
+      const filteredTimeline = (wellRecord.timeline || []).filter(t => {
+        const d = new Date(t.date + "T00:00:00");
+        return d >= windowStart && d <= windowEnd;
+      });
+      
+      if (filteredTimeline.length > 0) {
+        const uptime = filteredTimeline.filter(t => t.state === 1).length;
+        const downtime = filteredTimeline.filter(t => t.state === 0).length;
+        const total = uptime + downtime;
+        const availability = total > 0 ? uptime / total : 0;
+        
+        uptimes.push(uptime);
+        downtimes.push(downtime);
+        availabilities.push(availability);
+      }
+    });
+    
+    let stats = {
+      uptime: { p10: 0, p50: 0, p90: 0, mean: 0 },
+      downtime: { p10: 0, p50: 0, p90: 0, mean: 0 },
+      availability: { p10: 0, p50: 0, p90: 0, mean: 0 }
+    };
+    
+    if (availabilities.length > 0) {
+      const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+      stats = {
+        uptime: {
+          p10: calculatePercentile(uptimes, 10),
+          p50: calculatePercentile(uptimes, 50),
+          p90: calculatePercentile(uptimes, 90),
+          mean: mean(uptimes)
+        },
+        downtime: {
+          p10: calculatePercentile(downtimes, 10),
+          p50: calculatePercentile(downtimes, 50),
+          p90: calculatePercentile(downtimes, 90),
+          mean: mean(downtimes)
+        },
+        availability: {
+          p10: calculatePercentile(availabilities, 10),
+          p50: calculatePercentile(availabilities, 50),
+          p90: calculatePercentile(availabilities, 90),
+          mean: mean(availabilities)
+        }
+      };
+    }
+    
+    const tbody = document.querySelector("#table-field-avail-stats-dynamic tbody");
+    if (tbody) {
+      tbody.innerHTML = "";
+      
+      const metrics = [
+        {
+          key: "uptime",
+          labelEs: "Tiempo en Operación (Uptime) (meses)",
+          labelEn: "Uptime (Operating Time) (months)",
+          format: val => val.toFixed(1)
+        },
+        {
+          key: "downtime",
+          labelEs: "Tiempo Fuera de Servicio (Downtime) (meses)",
+          labelEn: "Downtime (Out of Service) (months)",
+          format: val => val.toFixed(1)
+        },
+        {
+          key: "availability",
+          labelEs: "Disponibilidad del Sistema Pozo (%)",
+          labelEn: "Well System Availability (%)",
+          format: val => (val * 100).toFixed(2) + "%"
+        }
+      ];
+      
+      metrics.forEach(m => {
+        const data = stats[m.key];
+        const tr = document.createElement("tr");
+        
+        const tdLabel = document.createElement("td");
+        tdLabel.textContent = currentLang === 'es' ? m.labelEs : m.labelEn;
+        tdLabel.style.fontWeight = "700";
+        tr.appendChild(tdLabel);
+        
+        const tdP10 = document.createElement("td");
+        tdP10.className = "num-col";
+        tdP10.textContent = m.format(data.p10);
+        tr.appendChild(tdP10);
+        
+        const tdP50 = document.createElement("td");
+        tdP50.className = "num-col";
+        tdP50.textContent = m.format(data.p50);
+        tr.appendChild(tdP50);
+        
+        const tdP90 = document.createElement("td");
+        tdP90.className = "num-col";
+        tdP90.textContent = m.format(data.p90);
+        tr.appendChild(tdP90);
+        
+        const tdMean = document.createElement("td");
+        tdMean.className = "num-col";
+        tdMean.textContent = m.format(data.mean);
+        tr.appendChild(tdMean);
+        
+        tbody.appendChild(tr);
+      });
+    }
+    
+    if (histDynamicChart) {
+      histDynamicChart.destroy();
+    }
+    
+    document.getElementById("chart-field-avail-hist-dynamic").innerHTML = "";
+    if (availabilities.length > 0) {
+      const p10 = stats.availability.p10;
+      const p50 = stats.availability.p50;
+      const p90 = stats.availability.p90;
+      
+      const options = renderHistogram("chart-field-avail-hist-dynamic", histDynamicChart, availabilities, p10, p50, p90);
+      histDynamicChart = new ApexCharts(document.getElementById("chart-field-avail-hist-dynamic"), options);
+      histDynamicChart.render();
+    } else {
+      document.getElementById("chart-field-avail-hist-dynamic").innerHTML = `<div style="text-align:center; padding: 40px; color:var(--color-on-surface-variant); font-style:italic;">No data available</div>`;
+    }
   }
 
   // INITIAL BOOTSTRAP
